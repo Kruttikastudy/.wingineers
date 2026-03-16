@@ -138,7 +138,21 @@ function populateDetails(details) {
 
   if (details.average_score !== undefined) {
     const avgPercent = Math.round(details.average_score * 100);
-    addDetailItem("Average Score", `${avgPercent}%`);
+    // For images, we might use "Detection Score" if only one face or average
+    const label =
+      details.frames_analyzed === undefined ?
+        "Detection Score"
+      : "Average Score";
+    addDetailItem(label, `${avgPercent}%`);
+  }
+
+  if (details.faces_detected !== undefined) {
+    addDetailItem("Faces Detected", details.faces_detected.toString());
+  }
+
+  if (details.score !== undefined) {
+    const scorePercent = Math.round(details.score * 100);
+    addDetailItem("Detection Score", `${scorePercent}%`);
   }
 
   if (details.max_score !== undefined) {

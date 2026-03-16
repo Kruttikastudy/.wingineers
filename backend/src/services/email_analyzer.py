@@ -107,17 +107,28 @@ class EmailAnalyzer:
         component_scores["header"] = header_result["score"]
         reasons.extend(header_result["reasons"])
 
-        # Combined scoring: weighted average with critical signal override
-        final_score = max(
-            component_scores["sentiment"] * 0.4,  # Intent/sentiment weight
-            component_scores["url_worst"] * 0.5,  # URL analysis weight (highest)
-            component_scores["header"] * 0.3      # Header anomaly weight
+        # Combined scoring: Use the highest signal if it's significant, otherwise weighted average
+        potential_score = max(
+            component_scores["sentiment"],
+            component_scores["url_worst"],
+            component_scores["header"]
         )
 
-        # Critical signals: if any component has high confidence malicious signal
-        if (component_scores["url_worst"] >= 80 or
-            (intent_result.get("critical") and component_scores["sentiment"] >= 70)):
+        # If any signal is high risk (>= 50), let it lead the final score
+        if potential_score >= 50:
+            final_score = potential_score
+        else:
+            final_score = (
+                component_scores["sentiment"] * 0.4 +
+                component_scores["url_worst"] * 0.4 +
+                component_scores["header"] * 0.2
+            )
+
+        # Critical signals boost
+        if component_scores["url_worst"] >= 75:
             final_score = max(final_score, 85)
+        elif intent_result.get("critical") or component_scores["sentiment"] >= 80:
+            final_score = max(final_score, 80)
 
         final_score = min(int(final_score), 100)
         confidence = min(0.3 + len(reasons) * 0.08, 1.0)
@@ -218,8 +229,8 @@ class EmailAnalyzer:
             try:
                 for url in links:
                     try:
-                        # Call existing async URL analyzer
-                        analysis = await phishing_analyzer.full_analysis(url)
+                        # Call existing async URL analyzer with None for API key (fallback to rules)
+                        analysis = await phishing_analyzer.full_analysis(url, None)
                         score = analysis.get("riskScore", 0)
 
                         if score > worst_score:

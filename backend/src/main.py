@@ -181,6 +181,70 @@ async def detect_video_deepfake(file: UploadFile = File(...)):
                 logger.warning(f"Could not delete temp file: {e}")
 
 
+@app.post("/detect/image", response_model=DeepfakeResponse, tags=["Detection"])
+async def detect_image_deepfake(file: UploadFile = File(...)):
+    """
+    Detect deepfake in an image file.
+
+    Supports: JPG, JPEG, PNG, WEBP, AVIF
+    """
+    if detector is None:
+        raise HTTPException(
+            status_code=503, detail="Deepfake detector not initialized"
+        )
+
+    # Validate file type
+    valid_image_types = {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/avif",
+        "application/octet-stream",
+    }
+    if file.content_type not in valid_image_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid image format. Supported: JPG, JPEG, PNG, WEBP, AVIF",
+        )
+
+    temp_file = None
+    try:
+        # Save uploaded file temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".image") as tmp:
+            contents = await file.read()
+            tmp.write(contents)
+            temp_file = tmp.name
+
+        # Detect deepfake
+        logger.info(f"Analyzing image file: {file.filename}")
+        result = detector.detect_image_deepfake(temp_file)
+
+        return DeepfakeResponse(
+            is_deepfake=result.get("is_deepfake"),
+            confidence=result.get("confidence", 0.0),
+            message=result.get("message"),
+            error=result.get("error"),
+            details={
+                k: v
+                for k, v in result.items()
+                if k not in ["is_deepfake", "confidence", "message", "error"]
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"Error processing image: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        # Clean up temporary file
+        if temp_file and os.path.exists(temp_file):
+            try:
+                os.remove(temp_file)
+            except Exception as e:
+                logger.warning(f"Could not delete temp file: {e}")
+
+
+
 @app.post("/detect", response_model=DeepfakeResponse, tags=["Detection"])
 async def detect_deepfake(file: UploadFile = File(...)):
     """
@@ -209,12 +273,15 @@ async def detect_deepfake(file: UploadFile = File(...)):
             result = detector.detect_audio_deepfake(temp_file)
         elif file_ext in [".mp4", ".avi", ".mkv", ".mov", ".webm"]:
             result = detector.detect_video_deepfake(temp_file)
+        elif file_ext in [".jpg", ".jpeg", ".png", ".webp", ".avif"]:
+            result = detector.detect_image_deepfake(temp_file)
         else:
             return DeepfakeResponse(
                 is_deepfake=None,
                 confidence=0.0,
                 error=f"Unsupported file format: {file_ext}",
             )
+
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
@@ -265,13 +332,16 @@ async def root():
             "health": "/health",
             "detect_audio": "/detect/audio",
             "detect_video": "/detect/video",
+            "detect_image": "/detect/image",
             "auto_detect": "/detect",
             "webhooks": "/webhooks",
         },
         "supported_formats": {
             "audio": [".mp3", ".wav", ".ogg", ".m4a", ".flac"],
             "video": [".mp4", ".avi", ".mkv", ".mov", ".webm"],
+            "image": [".jpg", ".jpeg", ".png", ".webp", ".avif"],
         },
+
     }
 
 

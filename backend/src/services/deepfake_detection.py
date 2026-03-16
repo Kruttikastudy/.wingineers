@@ -198,9 +198,7 @@ class DeepfakeDetector:
                 "error": str(e),
             }
 
-    def detect_video_deepfake(self, video_path: str, sample_frames: int = 10) -> Dict[
-        str, Any
-    ]:
+    def detect_video_deepfake(self, video_path: str, sample_frames: int = 10) -> Dict[str, Any]:
         """
         Detect deepfake in video file using HuggingFace model on frames.
 
@@ -307,6 +305,85 @@ class DeepfakeDetector:
                 "confidence": 0.0,
                 "error": str(e),
             }
+
+    def detect_image_deepfake(self, image_path: str) -> Dict[str, Any]:
+        """
+        Detect deepfake in a single image file.
+
+        Args:
+            image_path: Path to image file
+
+        Returns:
+            Dictionary with detection results
+        """
+        try:
+            if not os.path.exists(image_path):
+                return {
+                    "is_deepfake": None,
+                    "confidence": 0.0,
+                    "error": f"Image file not found: {image_path}",
+                }
+
+            logger.info(f"Processing image: {image_path}")
+
+            # Read image
+            frame = cv2.imread(image_path)
+            if frame is None:
+                return {
+                    "is_deepfake": None,
+                    "confidence": 0.0,
+                    "error": "Could not read image file",
+                }
+
+            # Use HuggingFace model if available
+            if self.video_model is not None:
+                try:
+                    score = self._classify_frame_with_model(frame)
+                    is_deepfake = bool(score > 0.5)
+                    confidence = float(max(score, 1 - score))
+
+                    return {
+                        "is_deepfake": is_deepfake,
+                        "confidence": confidence,
+                        "score": score,
+                        "model": self.video_model.get("model_name", "prithivMLmods/Deep-Fake-Detector-v2-Model"),
+                        "message": "Image deepfake detection completed",
+                    }
+                except Exception as e:
+                    logger.warning(f"Model inference failed on image: {e}")
+
+            # Fallback: face analysis
+            self.set_current_frame(frame)
+            faces = self._detect_faces(frame)
+            if len(faces) > 0:
+                scores = [self._analyze_face(face) for face in faces]
+                avg_score = np.mean(scores)
+                is_deepfake = bool(avg_score > 0.5)
+                confidence = float(max(avg_score, 1 - avg_score))
+
+                return {
+                    "is_deepfake": is_deepfake,
+                    "confidence": confidence,
+                    "average_score": float(avg_score),
+                    "faces_detected": len(faces),
+                    "method": "face_analysis",
+                    "message": "Image deepfake detection completed (face analysis)",
+                }
+
+            return {
+                "is_deepfake": None,
+                "confidence": 0.0,
+                "message": "No faces detected in image for fallback analysis",
+            }
+
+        except Exception as e:
+            logger.error(f"Error detecting image deepfake: {e}")
+            return {
+                "is_deepfake": None,
+                "confidence": 0.0,
+                "error": str(e),
+            }
+
 
     def _classify_frame_with_model(self, frame) -> float:
         """Classify a frame using HuggingFace model."""
@@ -418,11 +495,16 @@ class DeepfakeDetector:
         elif file_ext in [".mp4", ".avi", ".mkv", ".mov", ".webm"]:
             return self.detect_video_deepfake(file_path)
 
+        # Image formats
+        elif file_ext in [".jpg", ".jpeg", ".png", ".webp", ".avif"]:
+            return self.detect_image_deepfake(file_path)
+
         else:
             return {
                 "error": f"Unsupported file format: {file_ext}",
                 "supported_audio": [".mp3", ".wav", ".ogg", ".m4a", ".flac"],
                 "supported_video": [".mp4", ".avi", ".mkv", ".mov", ".webm"],
+                "supported_image": [".jpg", ".jpeg", ".png", ".webp", ".avif"],
             }
 
 

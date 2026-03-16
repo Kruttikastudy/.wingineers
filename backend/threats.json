@@ -1,18 +1,5 @@
 [
   {
-    "id": 3,
-    "url": "http://login-paypal-security-update.com/",
-    "safe": false,
-    "riskScore": 64,
-    "confidence": 0.54,
-    "reasons": [
-      "Contains suspicious keywords: login, update, paypal \u2014 common in phishing URLs",
-      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
-    ],
-    "category": "medium_risk",
-    "timestamp": "2026-03-16T19:30:51.905865"
-  },
-  {
     "id": 2,
     "url": "http://secure-login-update.tk/",
     "safe": false,

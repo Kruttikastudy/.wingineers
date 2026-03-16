@@ -101,7 +101,9 @@ async function analyzeEmail(subject, sender, bodyText, links) {
       return null;
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log("[PhishGuard] Email analysis result from API:", result);
+    return result;
   } catch (err) {
     console.error("Failed to reach email analysis API:", err.message);
     return null;
@@ -256,6 +258,8 @@ function getFileNameFromUrl(url, mediaType = "video") {
     if (!fileName.includes(".")) {
       if (mediaType === "audio") {
         fileName += ".mp3";
+      } else if (mediaType === "image") {
+        fileName += ".jpg";
       } else {
         fileName += ".mp4"; // Default to mp4 for video or auto
       }
@@ -263,7 +267,9 @@ function getFileNameFromUrl(url, mediaType = "video") {
 
     return fileName;
   } catch {
-    return mediaType === "audio" ? "media.mp3" : "media.mp4";
+    if (mediaType === "audio") return "media.mp3";
+    if (mediaType === "image") return "media.jpg";
+    return "media.mp4";
   }
 }
 
@@ -330,6 +336,13 @@ function createDeepfakeContextMenus() {
       contexts: ["audio"],
     });
 
+    // Image elements context menu
+    chrome.contextMenus.create({
+      id: "deepfake-check-image",
+      title: "🖼️ Check for Deepfakes",
+      contexts: ["image"],
+    });
+
     // Links to media files
     chrome.contextMenus.create({
       id: "deepfake-check-link",
@@ -346,6 +359,11 @@ function createDeepfakeContextMenus() {
         "*://*/*.ogg",
         "*://*/*.m4a",
         "*://*/*.flac",
+        "*://*/*.jpg",
+        "*://*/*.jpeg",
+        "*://*/*.png",
+        "*://*/*.webp",
+        "*://*/*.avif",
       ],
     });
 
@@ -374,6 +392,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       mediaUrl = info.srcUrl;
       mediaType = "audio";
       break;
+    case "deepfake-check-image":
+      mediaUrl = info.srcUrl;
+      mediaType = "image";
+      break;
     case "deepfake-check-link":
       mediaUrl = info.linkUrl;
       mediaType = inferMediaType(mediaUrl);
@@ -401,6 +423,10 @@ function inferMediaType(url) {
   }
   for (const ext of audioExts) {
     if (url.includes(ext)) return "audio";
+  }
+  const imageExts = [".jpg", ".jpeg", ".png", ".webp", ".avif"];
+  for (const ext of imageExts) {
+    if (url.includes(ext)) return "image";
   }
   return "auto";
 }
@@ -537,27 +563,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     )
       .then((result) => {
         if (result && result.riskScore >= RISK_THRESHOLD) {
-          // Show notification for suspicious email
-          const reasons = result.reasons.slice(0, 2); // First 2 reasons
-          const notificationMessage =
-            reasons.length > 0 ?
-              reasons.join("\n")
-            : "Suspicious content detected";
+          console.log(
+            "[PhishGuard] !!! THREAT DETECTED !!! Score:",
+            result.riskScore,
+          );
+          chrome.action.setBadgeText({ text: result.riskScore.toString() });
+          chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
 
+          const reasons = result.reasons.slice(0, 2);
           chrome.notifications.create({
             type: "basic",
-            iconUrl: chrome.runtime.getURL("icons/shield-128.svg"),
-            title: `PhishGuard Alert (${result.riskScore}/100)`,
-            message: notificationMessage,
+            iconUrl: chrome.runtime.getURL("icons/shield-128.png"),
+            title: `SECURITY ALERT (${result.riskScore}/100)`,
+            message: reasons.join("\n") || "Phishing attempt detected!",
             priority: 2,
-            requireInteraction: false, // Auto-dismiss after 5 seconds
           });
-
-          console.log("[PhishGuard] Email flagged:", {
-            riskScore: result.riskScore,
-            category: result.category,
-            sender: message.sender,
-          });
+        } else {
+          console.log("[PhishGuard] Email safe. Score:", result?.riskScore);
+          chrome.action.setBadgeText({ text: "" });
         }
         sendResponse(result);
       })
