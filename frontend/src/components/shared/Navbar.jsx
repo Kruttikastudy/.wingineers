@@ -30,12 +30,12 @@ export default function Navbar() {
         >
           Detection
         </Link>
-        <a
-          href="#explainability"
+        <Link
+          to="/dashboard/phishing"
           className="text-sm font-semibold text-white/80 hover:text-white transition-colors tracking-wide"
         >
-          Explainability
-        </a>
+          Phishing
+        </Link>
         <a
           href="#mitigation"
           className="text-sm font-semibold text-white/80 hover:text-white transition-colors tracking-wide"

@@ -13,3 +13,11 @@
 button {
   cursor: pointer;
 }
+
+@layer base {
+  html,
+  body {
+    @apply bg-black;
+    background-color: black;
+  }
+}
