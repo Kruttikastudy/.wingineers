@@ -1,0 +1,7 @@
+.kes
+docs
+*/.venv
+backend/.env
+**/__pycache__/
+*.pyc
+.env
