@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     API_PORT: int = 8000
     DEBUG: bool = False
     DEVICE: str = "cpu"
+    LOAD_DEEPFAKE_MODELS: bool = True
     LOG_LEVEL: str = "INFO"
 
     # Twilio Settings

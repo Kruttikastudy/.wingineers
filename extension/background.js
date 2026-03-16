@@ -101,7 +101,9 @@ async function analyzeEmail(subject, sender, bodyText, links) {
       return null;
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log("[PhishGuard] Email analysis result from API:", result);
+    return result;
   } catch (err) {
     console.error("Failed to reach email analysis API:", err.message);
     return null;
@@ -171,6 +173,11 @@ async function downloadAndAnalyzeMedia(mediaUrl, mediaType) {
       "[PhishGuard] Downloading media for deepfake analysis:",
       mediaUrl,
     );
+
+    // Enforce HTTPS for media downloads to prevent MITM
+    if (!mediaUrl.startsWith('https://')) {
+      throw new Error('Only HTTPS media URLs are supported for security');
+    }
 
     // Download file
     const response = await fetch(mediaUrl, {
@@ -256,6 +263,8 @@ function getFileNameFromUrl(url, mediaType = "video") {
     if (!fileName.includes(".")) {
       if (mediaType === "audio") {
         fileName += ".mp3";
+      } else if (mediaType === "image") {
+        fileName += ".jpg";
       } else {
         fileName += ".mp4"; // Default to mp4 for video or auto
       }
@@ -263,7 +272,9 @@ function getFileNameFromUrl(url, mediaType = "video") {
 
     return fileName;
   } catch {
-    return mediaType === "audio" ? "media.mp3" : "media.mp4";
+    if (mediaType === "audio") return "media.mp3";
+    if (mediaType === "image") return "media.jpg";
+    return "media.mp4";
   }
 }
 
@@ -330,6 +341,13 @@ function createDeepfakeContextMenus() {
       contexts: ["audio"],
     });
 
+    // Image elements context menu
+    chrome.contextMenus.create({
+      id: "deepfake-check-image",
+      title: "🖼️ Check for Deepfakes",
+      contexts: ["image"],
+    });
+
     // Links to media files
     chrome.contextMenus.create({
       id: "deepfake-check-link",
@@ -346,6 +364,11 @@ function createDeepfakeContextMenus() {
         "*://*/*.ogg",
         "*://*/*.m4a",
         "*://*/*.flac",
+        "*://*/*.jpg",
+        "*://*/*.jpeg",
+        "*://*/*.png",
+        "*://*/*.webp",
+        "*://*/*.avif",
       ],
     });
 
@@ -373,6 +396,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     case "deepfake-check-audio":
       mediaUrl = info.srcUrl;
       mediaType = "audio";
+      break;
+    case "deepfake-check-image":
+      mediaUrl = info.srcUrl;
+      mediaType = "image";
       break;
     case "deepfake-check-link":
       mediaUrl = info.linkUrl;
@@ -402,6 +429,10 @@ function inferMediaType(url) {
   for (const ext of audioExts) {
     if (url.includes(ext)) return "audio";
   }
+  const imageExts = [".jpg", ".jpeg", ".png", ".webp", ".avif"];
+  for (const ext of imageExts) {
+    if (url.includes(ext)) return "image";
+  }
   return "auto";
 }
 
@@ -411,11 +442,10 @@ function inferMediaType(url) {
 function openDeepfakeResultModal(mediaUrl, mediaType) {
   // Close previous window if exists
   if (deepfakeResultWindow) {
-    try {
-      chrome.windows.remove(deepfakeResultWindow.id);
-    } catch (err) {
-      console.log("[PhishGuard] Previous result window already closed");
-    }
+    chrome.windows.remove(deepfakeResultWindow.id).catch(() => {
+      // Previous result window was already closed
+    });
+    deepfakeResultWindow = null;
   }
 
   // Create window
@@ -470,10 +500,14 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   const storage = await chrome.storage.local.get("protectionEnabled");
   if (storage.protectionEnabled === false) return;
 
-  // Check if this URL was allowed by the user
+  // Check if this URL was allowed by the user (with expiry)
   const allowed = await chrome.storage.local.get("allowedUrls");
-  const allowedUrls = allowed.allowedUrls || [];
-  if (allowedUrls.includes(url)) return;
+  let allowedUrls = allowed.allowedUrls || [];
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  // Filter expired entries
+  allowedUrls = allowedUrls.filter(entry => (now - (entry.addedAt || 0)) < TWENTY_FOUR_HOURS);
+  if (allowedUrls.some(entry => entry.url === url)) return;
 
   pendingChecks.add(url);
 
@@ -501,7 +535,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         `&score=${result.riskScore}` +
         `&confidence=${result.confidence}` +
         `&reasons=${encodeURIComponent(JSON.stringify(result.reasons))}` +
-        `&category=${result.category}`;
+        `&category=${encodeURIComponent(result.category || 'unknown')}`;
 
       chrome.tabs.update(details.tabId, { url: warningUrl });
     }
@@ -537,27 +571,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     )
       .then((result) => {
         if (result && result.riskScore >= RISK_THRESHOLD) {
-          // Show notification for suspicious email
-          const reasons = result.reasons.slice(0, 2); // First 2 reasons
-          const notificationMessage =
-            reasons.length > 0 ?
-              reasons.join("\n")
-            : "Suspicious content detected";
+          console.log(
+            "[PhishGuard] !!! THREAT DETECTED !!! Score:",
+            result.riskScore,
+          );
+          chrome.action.setBadgeText({ text: result.riskScore.toString() });
+          chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
 
+          const reasons = result.reasons.slice(0, 2);
           chrome.notifications.create({
             type: "basic",
-            iconUrl: chrome.runtime.getURL("icons/shield-128.svg"),
-            title: `PhishGuard Alert (${result.riskScore}/100)`,
-            message: notificationMessage,
+            iconUrl: chrome.runtime.getURL("icons/shield-128.png"),
+            title: `SECURITY ALERT (${result.riskScore}/100)`,
+            message: reasons.join("\n") || "Phishing attempt detected!",
             priority: 2,
-            requireInteraction: false, // Auto-dismiss after 5 seconds
           });
-
-          console.log("[PhishGuard] Email flagged:", {
-            riskScore: result.riskScore,
-            category: result.category,
-            sender: message.sender,
-          });
+        } else {
+          console.log("[PhishGuard] Email safe. Score:", result?.riskScore);
+          chrome.action.setBadgeText({ text: "" });
         }
         sendResponse(result);
       })
@@ -569,12 +600,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "ALLOW_URL") {
-    // User chose to continue anyway
+    // Validate: only extension pages can add to allowlist
+    if (!sender.id || sender.id !== chrome.runtime.id) {
+      console.warn('[PhishGuard] ALLOW_URL rejected — invalid sender:', sender.id);
+      sendResponse({ ok: false, error: 'unauthorized' });
+      return true;
+    }
+
     chrome.storage.local.get("allowedUrls", (data) => {
-      const urls = data.allowedUrls || [];
-      urls.push(message.url);
-      // Keep only last 100 allowed URLs
-      if (urls.length > 100) urls.shift();
+      let urls = data.allowedUrls || [];
+
+      // Expire entries older than 24 hours
+      const now = Date.now();
+      const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+      urls = urls.filter(entry => (now - (entry.addedAt || 0)) < TWENTY_FOUR_HOURS);
+
+      // Add new entry with timestamp
+      urls.push({ url: message.url, addedAt: now });
+
+      // Cap at 50 entries
+      if (urls.length > 50) urls.shift();
+
       chrome.storage.local.set({ allowedUrls: urls });
       sendResponse({ ok: true });
     });
@@ -612,17 +658,72 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     return true;
   }
+
+  if (message.type === "SUBMIT_FEEDBACK") {
+    // Submit user feedback on a detection result
+    fetch(`${API_BASE}/api/xai/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: message.url,
+        original_verdict: message.originalVerdict,
+        original_score: message.originalScore,
+        user_label: message.userLabel,
+        user_id: message.userId || null,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("[PhishGuard] Feedback submitted:", data);
+        sendResponse(data);
+      })
+      .catch((err) => {
+        console.error("[PhishGuard] Feedback submission failed:", err);
+        sendResponse(null);
+      });
+    return true;
+  }
+
+  if (message.type === "SUBMIT_DEEPFAKE_FEEDBACK") {
+    // Submit user feedback on a deepfake detection result
+    fetch(`${API_BASE}/api/xai/deepfake-feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        media_url: message.mediaUrl,
+        original_verdict: message.originalVerdict,
+        original_confidence: message.originalConfidence,
+        user_label: message.userLabel,
+        user_id: message.userId || null,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("[PhishGuard] Deepfake feedback submitted:", data);
+        sendResponse(data);
+      })
+      .catch((err) => {
+        console.error("[PhishGuard] Deepfake feedback submission failed:", err);
+        sendResponse(null);
+      });
+    return true;
+  }
 });
 
 // Initialize protection as enabled on install
 chrome.runtime.onInstalled.addListener(() => {
+  // Generate anonymous user ID
+  const randomBytes = new Uint8Array(12);
+  crypto.getRandomValues(randomBytes);
+  const userId = 'pg_' + Date.now().toString(36) + '_' + Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('');
   chrome.storage.local.set({
     protectionEnabled: true,
     allowedUrls: [],
     deepfakeHistory: [],
+    phishguardUserId: userId,
   });
   createDeepfakeContextMenus();
-  console.log("🛡️ PhishGuard installed and active with deepfake detection");
+  console.log('\u{1F6E1}\uFE0F PhishGuard installed with user ID:', userId);
 });
 
 // Also create context menus on startup

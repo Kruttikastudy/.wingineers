@@ -1,7 +1,9 @@
 /**
  * Deepfake Result Modal Controller
- * Displays analysis results with verdict and confidence visualization
+ * Displays analysis results with verdict, confidence, XAI explanation, and feedback
  */
+
+const API_BASE = "http://localhost:8000";
 
 // State
 let currentAnalysis = null;
@@ -43,6 +45,14 @@ document.addEventListener("DOMContentLoaded", () => {
   closeBtn.addEventListener("click", () => window.close());
   closeErrorBtn.addEventListener("click", () => window.close());
   retryBtn.addEventListener("click", retryAnalysis);
+
+  // Feedback buttons
+  document.getElementById("feedbackAuthentic").addEventListener("click", () => {
+    submitDeepfakeFeedback("authentic");
+  });
+  document.getElementById("feedbackDeepfake").addEventListener("click", () => {
+    submitDeepfakeFeedback("deepfake");
+  });
 
   // Listen for analysis complete message (pushed from background)
   chrome.runtime.onMessage.addListener((message) => {
@@ -120,6 +130,117 @@ function displayResult(analysis) {
     const timeSeconds = (analysis.analysisTime / 1000).toFixed(1);
     addDetailItem("Analysis Time", `${timeSeconds}s`);
   }
+
+  // Fetch XAI explanation
+  fetchDeepfakeExplanation(verdict, confidence, data.details || {});
+
+  // Show feedback section
+  document.getElementById("feedbackSection").classList.remove("hidden");
+}
+
+/**
+ * Fetch XAI explanation from the backend
+ */
+async function fetchDeepfakeExplanation(verdict, confidence, details) {
+  const xaiSection = document.getElementById("xaiSection");
+  const xaiLoading = document.getElementById("xaiLoading");
+  const featureList = document.getElementById("featureList");
+  const xaiCTA = document.getElementById("xaiCTA");
+  const severityBadge = document.getElementById("xaiSeverityBadge");
+
+  // Show XAI section with loading
+  xaiSection.classList.remove("hidden");
+
+  try {
+    const response = await fetch(`${API_BASE}/api/xai/explain-deepfake`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        verdict,
+        confidence,
+        details,
+        media_url: currentMediaUrl || "",
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Hide loading
+    xaiLoading.classList.add("hidden");
+
+    // Show severity badge
+    if (data.severity) {
+      const sevClass = `severity-${escapeHtml(data.severity.toLowerCase())}`;
+      severityBadge.textContent = '';
+      const badge = document.createElement('div');
+      badge.className = `severity-badge ${sevClass}`;
+      badge.textContent = `Risk Score: ${data.risk_score}/100 — ${data.severity}`;
+      severityBadge.appendChild(badge);
+    }
+
+    // Show features
+    if (data.features && data.features.length > 0) {
+      featureList.classList.remove("hidden");
+      featureList.innerHTML = "";
+
+      data.features.forEach((feature) => {
+        const item = document.createElement("div");
+        item.className = `feature-item impact-${feature.impact}`;
+        item.innerHTML = `
+          <span class="feature-name">${escapeHtml(feature.name)}</span>
+          <span class="feature-value">${escapeHtml(feature.value)}</span>
+        `;
+        featureList.appendChild(item);
+      });
+    }
+
+    // Show CTA
+    if (data.cta) {
+      xaiCTA.classList.remove("hidden");
+      xaiCTA.innerHTML = `<strong>Recommendation:</strong> ${escapeHtml(data.cta)}`;
+    }
+  } catch (err) {
+    const errMsg = (err && err.message) ? err.message : "backend unreachable";
+    xaiLoading.innerHTML = `<span style="color: rgba(255,255,255,0.3);">
+      AI explanation unavailable &mdash; ${escapeHtml(errMsg)}
+    </span>`;
+  }
+}
+
+/**
+ * Submit feedback on the deepfake detection
+ */
+async function submitDeepfakeFeedback(userLabel) {
+  const authBtn = document.getElementById("feedbackAuthentic");
+  const dfBtn = document.getElementById("feedbackDeepfake");
+  const thanks = document.getElementById("feedbackThanks");
+
+  // Disable buttons
+  authBtn.classList.add("submitted");
+  dfBtn.classList.add("submitted");
+
+  try {
+    const storage = await chrome.storage.local.get("phishguardUserId");
+    const userId = storage.phishguardUserId || "anonymous";
+
+    chrome.runtime.sendMessage({
+      type: "SUBMIT_DEEPFAKE_FEEDBACK",
+      mediaUrl: currentMediaUrl || "",
+      originalVerdict: currentAnalysis?.data?.verdict || "UNKNOWN",
+      originalConfidence: currentAnalysis?.data?.confidence || 0,
+      userLabel,
+      userId,
+    });
+
+    thanks.style.display = "block";
+  } catch (err) {
+    console.error("[PhishGuard] Deepfake feedback error:", err);
+  }
 }
 
 /**
@@ -138,7 +259,20 @@ function populateDetails(details) {
 
   if (details.average_score !== undefined) {
     const avgPercent = Math.round(details.average_score * 100);
-    addDetailItem("Average Score", `${avgPercent}%`);
+    const label =
+      details.frames_analyzed === undefined ?
+        "Detection Score"
+      : "Average Score";
+    addDetailItem(label, `${avgPercent}%`);
+  }
+
+  if (details.faces_detected !== undefined) {
+    addDetailItem("Faces Detected", details.faces_detected.toString());
+  }
+
+  if (details.score !== undefined) {
+    const scorePercent = Math.round(details.score * 100);
+    addDetailItem("Detection Score", `${scorePercent}%`);
   }
 
   if (details.max_score !== undefined) {

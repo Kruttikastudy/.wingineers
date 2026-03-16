@@ -11,9 +11,7 @@
     "scripting",
     "contextMenus"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
@@ -32,20 +30,23 @@
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "icons/shield-16.svg",
-      "48": "icons/shield-48.svg",
-      "128": "icons/shield-128.svg"
+      "16": "icons/shield-16.png",
+      "48": "icons/shield-48.png",
+      "128": "icons/shield-128.png"
     }
   },
   "icons": {
-    "16": "icons/shield-16.svg",
-    "48": "icons/shield-48.svg",
-    "128": "icons/shield-128.svg"
+    "16": "icons/shield-16.png",
+    "48": "icons/shield-48.png",
+    "128": "icons/shield-128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "web_accessible_resources": [
     {
       "resources": ["warning.html", "deepfake_result.html"],
-      "matches": ["<all_urls>"]
+      "matches": ["chrome-extension://*/*"]
     }
   ]
 }

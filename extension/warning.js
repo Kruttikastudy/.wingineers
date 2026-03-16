@@ -1,13 +1,17 @@
 /**
  * PhishGuard — Warning Page Script
- * Reads URL params and populates the warning UI.
+ * Reads URL params, populates warning UI, fetches XAI explanation,
+ * and handles user feedback submission.
  */
 
 (function () {
+  const API_BASE = "http://localhost:8000";
+
   const params = new URLSearchParams(window.location.search);
   const url = params.get('url') || 'Unknown URL';
   const score = parseInt(params.get('score') || '0', 10);
   const confidence = parseFloat(params.get('confidence') || '0');
+  const category = params.get('category') || 'unknown';
   let reasons = [];
 
   try {
@@ -67,15 +71,165 @@
 
   // ── Continue Anyway button ──
   document.getElementById('continueBtn').addEventListener('click', () => {
-    // Tell background to whitelist this URL temporarily
     chrome.runtime.sendMessage({
       type: 'ALLOW_URL',
       url: url
     }, () => {
-      // Navigate to the actual URL
       window.location.href = url;
     });
   });
+
+  // ── XAI: Fetch SHAP explanation ──
+  fetchXAIExplanation();
+
+  async function fetchXAIExplanation() {
+    const xaiLoading = document.getElementById('xaiLoading');
+    const tokenMap = document.getElementById('tokenMap');
+    const xaiCTA = document.getElementById('xaiCTA');
+    const severityBadge = document.getElementById('xaiSeverityBadge');
+
+    try {
+      // Get user ID from storage
+      const storage = await chrome.storage.local.get('phishguardUserId');
+      const userId = storage.phishguardUserId || 'anonymous';
+
+      const response = await fetch(`${API_BASE}/api/xai/explain`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: url,
+          url: url,
+          user_id: userId
+        }),
+        signal: AbortSignal.timeout(8000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Hide loading
+      xaiLoading.style.display = 'none';
+
+      // Show severity badge
+      if (data.severity) {
+        const sevClass = `severity-${escapeHtml(data.severity.toLowerCase())}`;
+        severityBadge.textContent = '';
+        const badge = document.createElement('div');
+        badge.className = `severity-badge ${sevClass}`;
+        badge.textContent = `Fused Score: ${data.fused_score}/100 — ${data.severity}`;
+        severityBadge.appendChild(badge);
+      }
+
+      // Render token heatmap
+      if (data.tokens && data.tokens.length > 0) {
+        tokenMap.style.display = 'flex';
+
+        data.tokens.forEach((token, i) => {
+          const shapVal = data.shap_values[i] || 0;
+          const color = getTokenColor(shapVal);
+
+          const span = document.createElement('span');
+          span.className = 'token';
+          span.style.backgroundColor = color;
+          span.style.color = '#fff';
+          span.textContent = token;
+
+          // Tooltip
+          const tooltip = document.createElement('span');
+          tooltip.className = 'token-tooltip';
+          tooltip.textContent = `SHAP: ${shapVal >= 0 ? '+' : ''}${shapVal.toFixed(4)}`;
+          span.appendChild(tooltip);
+
+          tokenMap.appendChild(span);
+        });
+      } else {
+        // Fallback: no tokens
+        tokenMap.style.display = 'block';
+        tokenMap.innerHTML = `<span style="color: rgba(255,255,255,0.4); font-size: 13px;">
+          Token-level analysis not available for this URL.
+          ${data.fallback ? '(Model confidence only)' : ''}
+        </span>`;
+      }
+
+      // Show CTA
+      if (data.cta) {
+        xaiCTA.style.display = 'block';
+        xaiCTA.innerHTML = `<strong>Recommendation:</strong> ${escapeHtml(data.cta)}`;
+      }
+
+    } catch (err) {
+      const errMsg = (err && err.message) ? err.message : 'backend unreachable';
+      console.error('[PhishGuard] XAI fetch failed:', errMsg);
+      xaiLoading.innerHTML = `<span style="color: rgba(255,255,255,0.3);">
+        AI explanation unavailable — ${escapeHtml(errMsg)}
+      </span>`;
+    }
+  }
+
+  /**
+   * Map SHAP value to RGB color.
+   * Positive (phishing signal) → red
+   * Negative (safe signal) → green
+   * Near zero → transparent gray
+   */
+  function getTokenColor(shapVal) {
+    const absVal = Math.abs(shapVal);
+    const intensity = Math.min(absVal * 3, 1); // Scale up for visibility
+
+    if (shapVal > 0.01) {
+      // Red (phishing)
+      return `rgba(239, 68, 68, ${0.15 + intensity * 0.6})`;
+    } else if (shapVal < -0.01) {
+      // Green (safe)
+      return `rgba(34, 197, 94, ${0.15 + intensity * 0.6})`;
+    } else {
+      // Neutral
+      return `rgba(255, 255, 255, 0.05)`;
+    }
+  }
+
+  // ── Feedback buttons ──
+  document.getElementById('feedbackSafe').addEventListener('click', () => {
+    submitFeedback('safe');
+  });
+
+  document.getElementById('feedbackPhishing').addEventListener('click', () => {
+    submitFeedback('phishing');
+  });
+
+  async function submitFeedback(userLabel) {
+    const safeBtn = document.getElementById('feedbackSafe');
+    const phishBtn = document.getElementById('feedbackPhishing');
+    const thanks = document.getElementById('feedbackThanks');
+
+    // Disable buttons
+    safeBtn.classList.add('submitted');
+    phishBtn.classList.add('submitted');
+
+    try {
+      // Get user ID
+      const storage = await chrome.storage.local.get('phishguardUserId');
+      const userId = storage.phishguardUserId || 'anonymous';
+
+      // Send feedback via background script
+      chrome.runtime.sendMessage({
+        type: 'SUBMIT_FEEDBACK',
+        url: url,
+        originalVerdict: category,
+        originalScore: score,
+        userLabel: userLabel,
+        userId: userId
+      });
+
+      // Show thanks
+      thanks.style.display = 'block';
+    } catch (err) {
+      console.error('[PhishGuard] Feedback submission error:', err);
+    }
+  }
 
   /**
    * Escape HTML to prevent XSS
