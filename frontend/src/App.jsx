@@ -7,6 +7,7 @@ import DeepfakeDetection from "./pages/DeepfakeDetection";
 import Dashboard from "./pages/Dashboard";
 import PhishingDashboard from "./pages/PhishingDashboard";
 import VoiceDashboard from "./pages/VoiceDashboard";
+import XAIDashboard from "./pages/XAIDashboard";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/phishing" element={<PhishingDashboard />} />
             <Route path="/dashboard/voice" element={<VoiceDashboard />} />
+            <Route path="/dashboard/xai" element={<XAIDashboard />} />
           </Routes>
         </Router>
       </AuthProvider>

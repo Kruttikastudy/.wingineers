@@ -73,7 +73,7 @@ export default function Dashboard() {
             </div>
           </Link>
 
-          <Link
+           <Link
             to="/dashboard/voice"
             className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-red-500/15 hover:border-red-500/40 transition-all group"
           >
@@ -88,6 +88,42 @@ export default function Dashboard() {
                 </p>
               </div>
               <span className="text-white/30 group-hover:text-red-400 text-2xl transition-colors">→</span>
+            </div>
+          </Link>
+
+          <Link
+            to="/deepfake"
+            className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-purple-500/15 hover:border-purple-500/40 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🎭</span>
+                  <h3 className="text-xl font-black text-purple-400">Deepfake Lab</h3>
+                </div>
+                <p className="text-white/60 font-medium">
+                  Media verification • Artifact detection
+                </p>
+              </div>
+              <span className="text-white/30 group-hover:text-purple-400 text-2xl transition-colors">→</span>
+            </div>
+          </Link>
+
+          <Link
+            to="/dashboard/xai"
+            className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-emerald-500/15 hover:border-emerald-500/40 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🧠</span>
+                  <h3 className="text-xl font-black text-emerald-400">Neural XAI</h3>
+                </div>
+                <p className="text-white/60 font-medium">
+                  Explainable AI • Security attribution
+                </p>
+              </div>
+              <span className="text-white/30 group-hover:text-emerald-400 text-2xl transition-colors">→</span>
             </div>
           </Link>
         </div>

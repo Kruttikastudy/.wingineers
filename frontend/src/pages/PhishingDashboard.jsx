@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import Navbar from "../components/shared/Navbar";
-import phishingBg from "../assets/phising.avif";
 import {
   ShieldAlert,
   ShieldCheck,
@@ -309,18 +308,15 @@ export default function PhishingDashboard() {
   }
 
   return (
-    <div className="relative min-h-screen w-full font-sans text-slate-200 selection:bg-cyan-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden pt-24 pb-20">
       <Navbar />
 
-      {/* Background Image Layer */}
-      <div
-        className="fixed inset-0 bg-cover bg-center z-0"
-        style={{ backgroundImage: `url(${phishingBg})` }}
-      >
-        <div className="absolute inset-0 bg-[#020617]/90 backdrop-blur-md" />
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[20%] right-[-5%] w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[150px]" />
       </div>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-20">
+      <main className="relative z-10 max-w-7xl mx-auto px-6">
         {/* Navigation Breadcrumbs */}
         <div className="flex items-center gap-2 mb-8 text-[11px] font-bold uppercase tracking-widest text-slate-500">
           <Link to="/" className="hover:text-cyan-400 transition-colors">

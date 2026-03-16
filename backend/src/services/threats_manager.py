@@ -109,10 +109,7 @@ class ThreatsManager:
             "highRisk": len([t for t in self.threats if t.get("category") == "high_risk"]),
             "mediumRisk": len([t for t in self.threats if t.get("category") == "medium_risk"]),
             "lowRisk": len([t for t in self.threats if t.get("category") == "low_risk"]),
-            "today": len([
-                t for t in self.threats
-                if datetime.fromisoformat(t.get("timestamp", "")).date() == datetime.utcnow().date()
-            ])
+            "today": self._count_today()
         }
 
         return {
@@ -120,6 +117,21 @@ class ThreatsManager:
             "total": total,
             "stats": stats
         }
+
+    def _count_today(self) -> int:
+        """Count threats from today, safely parsing timestamps with or without Z suffix."""
+        today = datetime.utcnow().date()
+        count = 0
+        for t in self.threats:
+            ts = t.get("timestamp", "")
+            try:
+                # Python 3.10 doesn't support 'Z' in fromisoformat
+                parsed = datetime.fromisoformat(ts.replace("Z", "+00:00") if ts.endswith("Z") else ts)
+                if parsed.date() == today:
+                    count += 1
+            except (ValueError, AttributeError):
+                continue
+        return count
 
     def get_threat(self, threat_id: int) -> Optional[Dict[str, Any]]:
         """

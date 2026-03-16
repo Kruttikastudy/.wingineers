@@ -52,7 +52,7 @@ class UserProfileManager:
         if user_id not in self.profiles:
             self.profiles[user_id] = {
                 "user_id": user_id,
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.utcnow().isoformat() + "Z",
                 "total_scans": 0,
                 "total_threats": 0,
                 "domain_history": [],  # list of {domain, timestamp, risk_score}
@@ -89,7 +89,7 @@ class UserProfileManager:
         # Add to domain history (keep last 500)
         profile["domain_history"].append({
             "domain": domain,
-            "timestamp": now.isoformat(),
+            "timestamp": now.isoformat() + "Z",
             "risk_score": risk_score,
             "category": category
         })
@@ -138,10 +138,15 @@ class UserProfileManager:
         cutoff = now - timedelta(days=30)
 
         # Count recent threats and scans
-        recent = [
-            d for d in profile["domain_history"]
-            if datetime.fromisoformat(d["timestamp"]) > cutoff
-        ]
+        recent = []
+        for d in profile["domain_history"]:
+            ts = d.get("timestamp", "")
+            try:
+                parsed = datetime.fromisoformat(ts.replace("Z", "+00:00") if ts.endswith("Z") else ts)
+                if parsed.replace(tzinfo=None) > cutoff:
+                    recent.append(d)
+            except (ValueError, AttributeError):
+                continue
 
         if not recent:
             return 0.0

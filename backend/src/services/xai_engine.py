@@ -84,7 +84,7 @@ class XAIEngine:
                 "base_value": 0.0,
                 "model_score": model_result["score"],
                 "model_label": model_result["label"],
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
                 "fallback": True,
                 "reason": "SHAP explainer not initialized"
             }
@@ -105,7 +105,7 @@ class XAIEngine:
                 "base_value": result["base_value"],
                 "model_score": model_result["score"],
                 "model_label": model_result["label"],
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
                 "fallback": False
             }
 
@@ -126,7 +126,7 @@ class XAIEngine:
                 "base_value": 0.0,
                 "model_score": model_result["score"],
                 "model_label": model_result["label"],
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
                 "fallback": True,
                 "reason": "SHAP computation timed out"
             }
@@ -138,7 +138,7 @@ class XAIEngine:
                 "base_value": 0.0,
                 "model_score": model_result["score"],
                 "model_label": model_result["label"],
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat() + "Z",
                 "fallback": True,
                 "reason": str(e)
             }
