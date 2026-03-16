@@ -101,7 +101,9 @@ async function analyzeEmail(subject, sender, bodyText, links) {
       return null;
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log("[PhishGuard] Email analysis result from API:", result);
+    return result;
   } catch (err) {
     console.error("Failed to reach email analysis API:", err.message);
     return null;
@@ -537,27 +539,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     )
       .then((result) => {
         if (result && result.riskScore >= RISK_THRESHOLD) {
-          // Show notification for suspicious email
-          const reasons = result.reasons.slice(0, 2); // First 2 reasons
-          const notificationMessage =
-            reasons.length > 0 ?
-              reasons.join("\n")
-            : "Suspicious content detected";
+          console.log(
+            "[PhishGuard] !!! THREAT DETECTED !!! Score:",
+            result.riskScore,
+          );
+          chrome.action.setBadgeText({ text: result.riskScore.toString() });
+          chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
 
+          const reasons = result.reasons.slice(0, 2);
           chrome.notifications.create({
             type: "basic",
-            iconUrl: chrome.runtime.getURL("icons/shield-128.svg"),
-            title: `PhishGuard Alert (${result.riskScore}/100)`,
-            message: notificationMessage,
+            iconUrl: chrome.runtime.getURL("icons/shield-128.png"),
+            title: `SECURITY ALERT (${result.riskScore}/100)`,
+            message: reasons.join("\n") || "Phishing attempt detected!",
             priority: 2,
-            requireInteraction: false, // Auto-dismiss after 5 seconds
           });
-
-          console.log("[PhishGuard] Email flagged:", {
-            riskScore: result.riskScore,
-            category: result.category,
-            sender: message.sender,
-          });
+        } else {
+          console.log("[PhishGuard] Email safe. Score:", result?.riskScore);
+          chrome.action.setBadgeText({ text: "" });
         }
         sendResponse(result);
       })

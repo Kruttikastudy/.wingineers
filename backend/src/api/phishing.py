@@ -84,6 +84,7 @@ async def analyze_email(request: AnalyzeEmailRequest):
         raise HTTPException(status_code=400, detail="Email subject or body is required")
 
     try:
+        from ..services import phishing_analyzer as url_analyzer
         analyzer = get_email_analyzer()
         result = await analyzer.analyze_email(
             subject=request.subject,
@@ -91,25 +92,10 @@ async def analyze_email(request: AnalyzeEmailRequest):
             body_text=request.body_text,
             links=request.links,
             headers=request.headers,
-            phishing_analyzer=None  # Will use rule-based URL analysis
+            phishing_analyzer=url_analyzer
         )
 
-        # For URL analysis, optionally use the existing phishing_analyzer
-        if request.links:
-            try:
-                result_with_urls = await analyzer.analyze_email(
-                    subject=request.subject,
-                    sender=request.sender,
-                    body_text=request.body_text,
-                    links=request.links,
-                    headers=request.headers,
-                    phishing_analyzer=None  # Use rule-based, not full async analyzer
-                )
-                result = result_with_urls
-            except Exception as e:
-                logger.warning(f"URL analysis in email failed: {e}")
-                # Continue with basic result
-
+        print(f"[API] Email Analysis - Score: {result.get('riskScore')}, Category: {result.get('category')}, Sender: {request.sender}")
         return EmailAnalysisResponse(**result)
     except Exception as e:
         logger.error(f"Email analysis error: {e}")
