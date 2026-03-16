@@ -1,0 +1,14 @@
+const fs = require('fs');
+const path = require('path');
+
+const svg = (size) => `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 128 128">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#6366f1"/></linearGradient></defs>
+  <rect width="128" height="128" rx="24" fill="url(#g)"/>
+  <path d="M64 20L30 38v28c0 24 14.5 46.4 34 52 19.5-5.6 34-28 34-52V38L64 20z" fill="white" opacity="0.9"/>
+  <path d="M58 72l-12-12 5-5 7 7 17-17 5 5L58 72z" fill="#3b82f6"/>
+</svg>`;
+
+[16, 48, 128].forEach(size => {
+  fs.writeFileSync(path.join(__dirname, `shield-${size}.svg`), svg(size));
+  console.log(`Created shield-${size}.svg`);
+});

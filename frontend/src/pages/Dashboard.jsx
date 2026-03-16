@@ -1,4 +1,5 @@
 import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -52,16 +53,24 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Next Steps */}
-        <div className="mt-12 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-8 backdrop-blur-sm">
-          <h3 className="text-xl font-black text-blue-400 mb-4">Next Steps</h3>
-          <ul className="space-y-2 text-white/80 font-medium">
-            <li>✓ User authenticated via Google OAuth</li>
-            <li>→ Connect to your backend API for data persistence</li>
-            <li>→ Set up protected routes and endpoints</li>
-            <li>→ Store user session/tokens securely</li>
-          </ul>
-        </div>
+        {/* PhishGuard Protection */}
+        <Link
+          to="/dashboard/phishing"
+          className="block mt-12 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-blue-500/15 hover:border-blue-500/40 transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-3xl">🛡️</span>
+                <h3 className="text-xl font-black text-blue-400">PhishGuard Protection</h3>
+              </div>
+              <p className="text-white/60 font-medium">
+                Real-time phishing detection • URL analysis • Threat monitoring
+              </p>
+            </div>
+            <span className="text-white/30 group-hover:text-blue-400 text-2xl transition-colors">→</span>
+          </div>
+        </Link>
       </div>
     </div>
   );
