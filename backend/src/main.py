@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from .config import settings
-from .api import webhooks, phishing
+from .api import webhooks, phishing, xai
 from .services.deepfake_detection import detector
 
 # Configure logging
@@ -47,6 +47,9 @@ app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 
 # Routes - Phishing Detection
 app.include_router(phishing.router, prefix="/api", tags=["phishing"])
+
+# Routes - XAI & Explainability
+app.include_router(xai.router, prefix="/api", tags=["xai"])
 
 
 # Routes - Deepfake Detection

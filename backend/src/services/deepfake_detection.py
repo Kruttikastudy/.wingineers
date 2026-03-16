@@ -26,6 +26,11 @@ class DeepfakeDetector:
 
     def _load_models(self):
         """Load deepfake detection models."""
+        if os.environ.get("LOAD_DEEPFAKE_MODELS", "false").lower() != "true":
+            logger.info("Skipping local deepfake models to dramatically speed up startup. To enable, set LOAD_DEEPFAKE_MODELS=true. For production, consider Serverless AI Hosting like Featherless.ai!")
+            # The fallback methods in the classes will be used instead.
+            return
+
         try:
             # Load audio deepfake detection model
             logger.info("Loading audio deepfake detection model...")

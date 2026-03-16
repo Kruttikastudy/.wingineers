@@ -612,17 +612,45 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     return true;
   }
+
+  if (message.type === "SUBMIT_FEEDBACK") {
+    // Submit user feedback on a detection result
+    fetch(`${API_BASE}/api/xai/feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: message.url,
+        original_verdict: message.originalVerdict,
+        original_score: message.originalScore,
+        user_label: message.userLabel,
+        user_id: message.userId || null,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("[PhishGuard] Feedback submitted:", data);
+        sendResponse(data);
+      })
+      .catch((err) => {
+        console.error("[PhishGuard] Feedback submission failed:", err);
+        sendResponse(null);
+      });
+    return true;
+  }
 });
 
 // Initialize protection as enabled on install
 chrome.runtime.onInstalled.addListener(() => {
+  // Generate anonymous user ID
+  const userId = 'pg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
   chrome.storage.local.set({
     protectionEnabled: true,
     allowedUrls: [],
     deepfakeHistory: [],
+    phishguardUserId: userId,
   });
   createDeepfakeContextMenus();
-  console.log("🛡️ PhishGuard installed and active with deepfake detection");
+  console.log('\u{1F6E1}\uFE0F PhishGuard installed with user ID:', userId);
 });
 
 // Also create context menus on startup

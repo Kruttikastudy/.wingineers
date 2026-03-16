@@ -237,6 +237,175 @@
       0%, 100% { opacity: 0.3; transform: translateX(-50%) scale(0.95); }
       50% { opacity: 0.6; transform: translateX(-50%) scale(1.05); }
     }
+
+    /* XAI Token Heatmap */
+    .xai-section {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .xai-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .xai-subtitle {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 16px;
+    }
+
+    .token-map {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      line-height: 2;
+    }
+
+    .token {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      cursor: default;
+      transition: transform 0.15s;
+      position: relative;
+    }
+
+    .token:hover {
+      transform: scale(1.1);
+      z-index: 10;
+    }
+
+    .token-tooltip {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a2e;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 11px;
+      white-space: nowrap;
+      color: #fff;
+      pointer-events: none;
+    }
+
+    .token:hover .token-tooltip {
+      display: block;
+    }
+
+    .severity-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    .severity-critical { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+    .severity-high { background: rgba(249,115,22,0.2); color: #fdba74; border: 1px solid rgba(249,115,22,0.3); }
+    .severity-moderate { background: rgba(245,158,11,0.2); color: #fde68a; border: 1px solid rgba(245,158,11,0.3); }
+    .severity-low { background: rgba(34,197,94,0.2); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+
+    .xai-loading {
+      text-align: center;
+      padding: 20px;
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+    }
+
+    .xai-loading .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255,255,255,0.1);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Feedback Section */
+    .feedback-section {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .feedback-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 12px;
+    }
+
+    .feedback-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .feedback-btn {
+      padding: 10px 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .feedback-btn:hover { background: rgba(255,255,255,0.08); }
+
+    .feedback-btn.safe-btn:hover {
+      background: rgba(34,197,94,0.15);
+      border-color: rgba(34,197,94,0.3);
+      color: #86efac;
+    }
+
+    .feedback-btn.phishing-btn:hover {
+      background: rgba(239,68,68,0.15);
+      border-color: rgba(239,68,68,0.3);
+      color: #fca5a5;
+    }
+
+    .feedback-btn.submitted {
+      opacity: 0.6;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .feedback-thanks {
+      display: none;
+      color: #86efac;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -270,6 +439,28 @@
     <div class="reasons-card">
       <div class="reasons-title">⚡ Why this link was flagged</div>
       <div id="reasonsList"></div>
+    </div>
+
+    <!-- XAI Token Heatmap -->
+    <div class="xai-section" id="xaiSection">
+      <div class="xai-title">🧠 AI Explanation — Token Analysis</div>
+      <div class="xai-subtitle">Each word is colored by how much it contributed to the phishing detection. Red = suspicious, green = safe.</div>
+      <div id="xaiSeverityBadge"></div>
+      <div class="xai-loading" id="xaiLoading">
+        <span class="spinner"></span> Generating SHAP explanation...
+      </div>
+      <div class="token-map" id="tokenMap" style="display:none;"></div>
+      <div id="xaiCTA" style="margin-top:12px; font-size:13px; color:rgba(255,255,255,0.5); display:none;"></div>
+    </div>
+
+    <!-- Feedback Section -->
+    <div class="feedback-section" id="feedbackSection">
+      <div class="feedback-title">Was this detection accurate?</div>
+      <div class="feedback-btns">
+        <button class="feedback-btn safe-btn" id="feedbackSafe">✅ This is Safe</button>
+        <button class="feedback-btn phishing-btn" id="feedbackPhishing">🚨 Confirm Phishing</button>
+      </div>
+      <div class="feedback-thanks" id="feedbackThanks">Thank you! Your feedback helps improve detection.</div>
     </div>
 
     <div class="actions">
