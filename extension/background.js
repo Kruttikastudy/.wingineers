@@ -174,6 +174,11 @@ async function downloadAndAnalyzeMedia(mediaUrl, mediaType) {
       mediaUrl,
     );
 
+    // Enforce HTTPS for media downloads to prevent MITM
+    if (!mediaUrl.startsWith('https://')) {
+      throw new Error('Only HTTPS media URLs are supported for security');
+    }
+
     // Download file
     const response = await fetch(mediaUrl, {
       method: "GET",
@@ -437,11 +442,10 @@ function inferMediaType(url) {
 function openDeepfakeResultModal(mediaUrl, mediaType) {
   // Close previous window if exists
   if (deepfakeResultWindow) {
-    try {
-      chrome.windows.remove(deepfakeResultWindow.id);
-    } catch (err) {
-      console.log("[PhishGuard] Previous result window already closed");
-    }
+    chrome.windows.remove(deepfakeResultWindow.id).catch(() => {
+      // Previous result window was already closed
+    });
+    deepfakeResultWindow = null;
   }
 
   // Create window
@@ -496,10 +500,14 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
   const storage = await chrome.storage.local.get("protectionEnabled");
   if (storage.protectionEnabled === false) return;
 
-  // Check if this URL was allowed by the user
+  // Check if this URL was allowed by the user (with expiry)
   const allowed = await chrome.storage.local.get("allowedUrls");
-  const allowedUrls = allowed.allowedUrls || [];
-  if (allowedUrls.includes(url)) return;
+  let allowedUrls = allowed.allowedUrls || [];
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  // Filter expired entries
+  allowedUrls = allowedUrls.filter(entry => (now - (entry.addedAt || 0)) < TWENTY_FOUR_HOURS);
+  if (allowedUrls.some(entry => entry.url === url)) return;
 
   pendingChecks.add(url);
 
@@ -527,7 +535,7 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         `&score=${result.riskScore}` +
         `&confidence=${result.confidence}` +
         `&reasons=${encodeURIComponent(JSON.stringify(result.reasons))}` +
-        `&category=${result.category}`;
+        `&category=${encodeURIComponent(result.category || 'unknown')}`;
 
       chrome.tabs.update(details.tabId, { url: warningUrl });
     }
@@ -592,12 +600,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "ALLOW_URL") {
-    // User chose to continue anyway
+    // Validate: only extension pages can add to allowlist
+    if (!sender.id || sender.id !== chrome.runtime.id) {
+      console.warn('[PhishGuard] ALLOW_URL rejected — invalid sender:', sender.id);
+      sendResponse({ ok: false, error: 'unauthorized' });
+      return true;
+    }
+
     chrome.storage.local.get("allowedUrls", (data) => {
-      const urls = data.allowedUrls || [];
-      urls.push(message.url);
-      // Keep only last 100 allowed URLs
-      if (urls.length > 100) urls.shift();
+      let urls = data.allowedUrls || [];
+
+      // Expire entries older than 24 hours
+      const now = Date.now();
+      const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+      urls = urls.filter(entry => (now - (entry.addedAt || 0)) < TWENTY_FOUR_HOURS);
+
+      // Add new entry with timestamp
+      urls.push({ url: message.url, addedAt: now });
+
+      // Cap at 50 entries
+      if (urls.length > 50) urls.shift();
+
       chrome.storage.local.set({ allowedUrls: urls });
       sendResponse({ ok: true });
     });
@@ -660,12 +683,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     return true;
   }
+
+  if (message.type === "SUBMIT_DEEPFAKE_FEEDBACK") {
+    // Submit user feedback on a deepfake detection result
+    fetch(`${API_BASE}/api/xai/deepfake-feedback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        media_url: message.mediaUrl,
+        original_verdict: message.originalVerdict,
+        original_confidence: message.originalConfidence,
+        user_label: message.userLabel,
+        user_id: message.userId || null,
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("[PhishGuard] Deepfake feedback submitted:", data);
+        sendResponse(data);
+      })
+      .catch((err) => {
+        console.error("[PhishGuard] Deepfake feedback submission failed:", err);
+        sendResponse(null);
+      });
+    return true;
+  }
 });
 
 // Initialize protection as enabled on install
 chrome.runtime.onInstalled.addListener(() => {
   // Generate anonymous user ID
-  const userId = 'pg_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+  const randomBytes = new Uint8Array(12);
+  crypto.getRandomValues(randomBytes);
+  const userId = 'pg_' + Date.now().toString(36) + '_' + Array.from(randomBytes, b => b.toString(16).padStart(2, '0')).join('');
   chrome.storage.local.set({
     protectionEnabled: true,
     allowedUrls: [],

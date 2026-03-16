@@ -86,18 +86,7 @@ async function analyzeEmailContent(emailData) {
       return;
     }
 
-    console.log("[PhishGuard] Analyzing email:", {
-      subject: emailData.subject,
-      from: emailData.sender,
-      linkCount: emailData.links.length,
-    });
-
-    console.log("[PhishGuard] Extracted Email Data:", {
-      subject: emailData.subject,
-      sender: emailData.sender,
-      bodyPreview: emailData.bodyText.substring(0, 50) + "...",
-      linksFound: emailData.links.length,
-    });
+    console.log("[PhishGuard] Analyzing email — linkCount:", emailData.links.length);
 
     // Send to background script for backend analysis
     chrome.runtime.sendMessage(
@@ -183,7 +172,7 @@ function showSecurityBanner(result) {
   title.style.display = "flex";
   title.style.alignItems = "center";
   title.style.gap = "8px";
-  title.innerHTML = `🛡️ PHISHGUARD ALERT: POTENTIAL THREAT DETECTED (${result.riskScore}/100)`;
+  title.textContent = `🛡️ PHISHGUARD ALERT: POTENTIAL THREAT DETECTED (${result.riskScore}/100)`;
 
   const body = document.createElement("div");
   body.style.fontSize = "14px";

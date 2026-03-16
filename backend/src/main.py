@@ -26,7 +26,11 @@ app = FastAPI(
 # CORS middleware for Frontend to communicate with Backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=[
+        "chrome-extension://*",
+        "http://localhost:5173",
+        "http://localhost:8000",
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

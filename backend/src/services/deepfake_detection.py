@@ -461,7 +461,7 @@ class DeepfakeDetector:
             frequency_score = min(frequency_score / 10, 1.0)
 
             # Combined score
-            combined_score = (blur_score * 0.6 + frequency_score * 0.4) / 2
+            combined_score = blur_score * 0.6 + frequency_score * 0.4
             return float(combined_score)
 
         except Exception as e:

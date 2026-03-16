@@ -40,10 +40,13 @@
     "48": "icons/shield-48.png",
     "128": "icons/shield-128.png"
   },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "web_accessible_resources": [
     {
       "resources": ["warning.html", "deepfake_result.html"],
-      "matches": ["<all_urls>"]
+      "matches": ["chrome-extension://*/*"]
     }
   ]
 }

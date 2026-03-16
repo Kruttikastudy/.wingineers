@@ -1,5 +1,90 @@
 [
   {
+    "id": 9,
+    "url": "http://signin.samsung.com/key/",
+    "safe": false,
+    "riskScore": 48,
+    "confidence": 0.54,
+    "reasons": [
+      "Contains suspicious keywords: signin \u2014 common in phishing URLs",
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T19:55:08.634808"
+  },
+  {
+    "id": 8,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T19:54:36.570775"
+  },
+  {
+    "id": 7,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T19:54:36.517228"
+  },
+  {
+    "id": 6,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T19:53:23.734111"
+  },
+  {
+    "id": 5,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T19:53:23.733112"
+  },
+  {
+    "id": 4,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T19:51:52.999096"
+  },
+  {
+    "id": 3,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T19:51:52.649087"
+  },
+  {
     "id": 2,
     "url": "http://secure-login-update.tk/",
     "safe": false,
