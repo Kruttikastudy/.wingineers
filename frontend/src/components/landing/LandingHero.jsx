@@ -1,4 +1,5 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Mic } from "lucide-react";
+import { Link } from "react-router-dom";
 import landingImage from "../../assets/landing.png";
 
 export default function LandingHero() {
@@ -36,6 +37,14 @@ export default function LandingHero() {
               <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </span>
           </button>
+
+          <Link
+            to="/dashboard/voice"
+            className="w-full sm:w-auto flex justify-center items-center py-4 px-10 rounded-full shadow-2xl text-sm font-black text-white bg-red-600 hover:bg-red-500 backdrop-blur-xl border border-red-400/30 transform transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] uppercase tracking-widest"
+          >
+            <Mic className="mr-2 w-5 h-5" />
+            Voice Intercept
+          </Link>
 
           <a
             href="#pricing"

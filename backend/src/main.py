@@ -9,6 +9,9 @@ from pydantic import BaseModel
 from .config import settings
 from .api import webhooks, phishing
 from .services.deepfake_detection import detector
+from .services.event_hub import event_hub
+from fastapi.responses import StreamingResponse
+import asyncio
 
 # Configure logging
 logging.basicConfig(
@@ -248,6 +251,17 @@ async def health_check():
         "environment": settings.API_HOST,
         "detector_initialized": detector is not None,
     }
+
+
+@app.get("/api/events", tags=["Real-time"])
+async def stream_events():
+    """
+    Server-Sent Events (SSE) endpoint to stream real-time threat alerts.
+    """
+    return StreamingResponse(
+        event_hub.subscribe(),
+        media_type="text/event-stream"
+    )
 
 
 # API information endpoint
