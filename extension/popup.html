@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PhishGuard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 340px;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0f172a;
+      color: #fff;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .header .shield {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .header h1 {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .header h1 span { color: #3b82f6; }
+
+    .status-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .status-row:last-child { margin-bottom: 0; }
+
+    .status-label {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 500;
+    }
+
+    .status-value {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .status-active { color: #22c55e; }
+    .status-inactive { color: #ef4444; }
+
+    .toggle-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 10px;
+    }
+
+    .toggle-btn.active {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+    }
+
+    .toggle-btn.inactive {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      color: #fff;
+    }
+
+    .toggle-btn:hover { opacity: 0.9; }
+
+    .dashboard-link {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 10px;
+      color: #93c5fd;
+      text-decoration: none;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .dashboard-link:hover {
+      background: rgba(59, 130, 246, 0.2);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .stat-box {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 22px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .stat-high { color: #ef4444; }
+    .stat-medium { color: #f59e0b; }
+    .stat-total { color: #3b82f6; }
+    .stat-today { color: #8b5cf6; }
+
+    .footer {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="shield">🛡️</div>
+    <h1>Phish<span>Guard</span></h1>
+  </div>
+
+  <div class="status-card">
+    <div class="status-row">
+      <span class="status-label">Protection</span>
+      <span class="status-value" id="statusText">Loading...</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">API Status</span>
+      <span class="status-value" id="apiStatus">Checking...</span>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-number stat-total" id="totalThreats">-</div>
+      <div class="stat-label">Total Threats</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number stat-today" id="todayThreats">-</div>
+      <div class="stat-label">Today</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number stat-high" id="highRisk">-</div>
+      <div class="stat-label">High Risk</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-number stat-medium" id="mediumRisk">-</div>
+      <div class="stat-label">Medium Risk</div>
+    </div>
+  </div>
+
+  <button class="toggle-btn active" id="toggleBtn">🛡️ Protection Active</button>
+
+  <a href="http://localhost:5173/dashboard/phishing" target="_blank" class="dashboard-link">
+    📊 Open Threat Dashboard
+  </a>
+
+  <div class="footer">PhishGuard v1.0 • Protecting your browsing</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

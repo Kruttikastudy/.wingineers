@@ -1,4 +1,4 @@
-import LandingNavbar from "../components/landing/LandingNavbar";
+import Navbar from "../components/shared/Navbar";
 import LandingHero from "../components/landing/LandingHero";
 import LandingPricing from "../components/landing/LandingPricing";
 import LandingFooter from "../components/landing/LandingFooter";
@@ -6,7 +6,7 @@ import LandingFooter from "../components/landing/LandingFooter";
 export default function Landing() {
   return (
     <div className="relative min-h-screen w-full font-sans bg-black selection:bg-blue-500/30">
-      <LandingNavbar />
+      <Navbar />
 
       {/* Scrollable Content Area */}
       <div className="relative z-10 w-full h-screen overflow-y-auto overflow-x-hidden scroll-smooth">

@@ -37,9 +37,12 @@ export default function LandingHero() {
             </span>
           </button>
 
-          <button className="w-full sm:w-auto flex justify-center items-center py-4 px-10 rounded-full shadow-2xl text-sm font-black text-white bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/20 transform transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] uppercase tracking-widest">
-            View Dashboard
-          </button>
+          <a
+            href="#pricing"
+            className="w-full sm:w-auto flex justify-center items-center py-4 px-10 rounded-full shadow-2xl text-sm font-black text-white bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/20 transform transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] uppercase tracking-widest"
+          >
+            View Plans
+          </a>
         </div>
       </div>
     </div>

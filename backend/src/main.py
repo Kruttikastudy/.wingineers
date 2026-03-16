@@ -1,12 +1,14 @@
 import os
 import logging
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from pathlib import Path
+import tempfile
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import tempfile
-from pathlib import Path
-from services.deepfake_detection import detector
+from .config import settings
+from .api import webhooks, phishing
+from .services.deepfake_detection import detector
 
 # Configure logging
 logging.basicConfig(
@@ -15,17 +17,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
 app = FastAPI(
-    title="Deepfake Detection API",
-    description="Unified API for detecting deepfakes in audio and video",
+    title="Cyber Defense Chatbot API",
+    description="Webhook ingest and analysis processing for Deepfake, Phishing and SMS intercepting WhatsApp bot.",
     version="1.0.0",
 )
 
-# Add CORS middleware
+# CORS middleware for Frontend to communicate with Backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Adjust in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,16 +42,14 @@ class DeepfakeResponse(BaseModel):
     details: dict | None = None
 
 
-# Routes
-@app.get("/health", tags=["Health"])
-async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "ok",
-        "detector_initialized": detector is not None,
-    }
+# Routes - Webhooks
+app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
+
+# Routes - Phishing Detection
+app.include_router(phishing.router, prefix="/api", tags=["phishing"])
 
 
+# Routes - Deepfake Detection
 @app.post("/detect/audio", response_model=DeepfakeResponse, tags=["Detection"])
 async def detect_audio_deepfake(file: UploadFile = File(...)):
     """
@@ -239,18 +238,32 @@ async def detect_deepfake(file: UploadFile = File(...)):
                 logger.warning(f"Could not delete temp file: {e}")
 
 
+# Health check endpoint
+@app.get("/health", tags=["Health"])
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "ok",
+        "device": settings.DEVICE,
+        "environment": settings.API_HOST,
+        "detector_initialized": detector is not None,
+    }
+
+
+# API information endpoint
 @app.get("/", tags=["Info"])
 async def root():
     """API information endpoint."""
     return {
-        "name": "Deepfake Detection API",
+        "name": "Cyber Defense Chatbot API",
         "version": "1.0.0",
-        "description": "Unified API for detecting deepfakes in audio and video",
+        "description": "Unified API for deepfake detection, phishing detection, and webhook processing",
         "endpoints": {
             "health": "/health",
             "detect_audio": "/detect/audio",
             "detect_video": "/detect/video",
             "auto_detect": "/detect",
+            "webhooks": "/webhooks",
         },
         "supported_formats": {
             "audio": [".mp3", ".wav", ".ogg", ".m4a", ".flac"],
@@ -261,5 +274,4 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("src.main:app", host=settings.API_HOST, port=settings.API_PORT, reload=settings.DEBUG)

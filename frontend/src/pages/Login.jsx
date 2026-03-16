@@ -1,5 +1,5 @@
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Dashboard from "./Dashboard";
 import loginImage from "../assets/login.avif";
 import LoginHero from "../components/login/LoginHero";
 import LoginForm from "../components/login/LoginForm";
@@ -19,7 +19,7 @@ export default function Login() {
   }
 
   if (user) {
-    return <Dashboard />;
+    return <Navigate to="/" replace />;
   }
 
   return (

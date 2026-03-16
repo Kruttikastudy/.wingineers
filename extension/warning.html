@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚠️ Phishing Warning — PhishGuard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #1a0000 0%, #2d0a0a 30%, #0d0d1a 100%);
+      color: #fff;
+      padding: 24px;
+    }
+
+    .warning-container {
+      max-width: 640px;
+      width: 100%;
+      animation: slideUp 0.4s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .warning-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fca5a5;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .warning-badge .icon {
+      font-size: 16px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    h1 span { color: #ef4444; }
+
+    .subtitle {
+      font-size: 16px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 28px;
+      line-height: 1.5;
+    }
+
+    .score-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .score-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .score-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .score-value {
+      font-size: 48px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .score-value.high { color: #ef4444; }
+    .score-value.medium { color: #f59e0b; }
+    .score-value.low { color: #22c55e; }
+
+    .score-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+
+    .score-bar-fill.high { background: linear-gradient(90deg, #ef4444, #dc2626); }
+    .score-bar-fill.medium { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .score-bar-fill.low { background: linear-gradient(90deg, #22c55e, #16a34a); }
+
+    .confidence {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .url-display {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      word-break: break-all;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      color: #fca5a5;
+      line-height: 1.5;
+    }
+
+    .reasons-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+
+    .reasons-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .reason-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 14px;
+      color: rgba(255,255,255,0.7);
+      line-height: 1.5;
+    }
+
+    .reason-item:last-child { border-bottom: none; }
+
+    .reason-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      background: rgba(239, 68, 68, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #ef4444;
+      margin-top: 2px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn-safe {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-safe:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-danger {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.6);
+    }
+
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    /* Animated warning pulse */
+    .pulse-ring {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239,68,68,0.08) 0%, transparent 70%);
+      animation: pulse 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: translateX(-50%) scale(0.95); }
+      50% { opacity: 0.6; transform: translateX(-50%) scale(1.05); }
+    }
+  </style>
+</head>
+<body>
+  <div class="pulse-ring"></div>
+
+  <div class="warning-container">
+    <div class="warning-badge">
+      <span class="icon">🛡️</span>
+      PhishGuard Protection
+    </div>
+
+    <h1>This link looks <span>dangerous</span></h1>
+    <p class="subtitle">
+      PhishGuard has detected potential phishing indicators in this URL.
+      We recommend going back to safety.
+    </p>
+
+    <div class="score-card">
+      <div class="score-header">
+        <span class="score-label">Risk Score</span>
+        <span class="score-value" id="scoreValue">--</span>
+      </div>
+      <div class="score-bar">
+        <div class="score-bar-fill" id="scoreBar" style="width: 0%"></div>
+      </div>
+      <div class="confidence" id="confidenceText">Confidence: --</div>
+    </div>
+
+    <div class="url-display" id="urlDisplay">Loading...</div>
+
+    <div class="reasons-card">
+      <div class="reasons-title">⚡ Why this link was flagged</div>
+      <div id="reasonsList"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-safe" id="goBackBtn">
+        ← Go Back (Recommended)
+      </button>
+      <button class="btn btn-danger" id="continueBtn">
+        Continue Anyway →
+      </button>
+    </div>
+  </div>
+
+  <script src="warning.js"></script>
+</body>
+</html>
