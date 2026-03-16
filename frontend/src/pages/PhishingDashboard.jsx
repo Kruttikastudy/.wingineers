@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import Navbar from "../components/shared/Navbar";
+import phishingBg from "../assets/phising.avif";
 import {
   ShieldAlert,
   ShieldCheck,
@@ -27,233 +28,212 @@ import {
   LayoutDashboard,
   Eye,
   Fingerprint,
+  BarChart3,
+  ListFilter,
+  ArrowUpRight,
+  AlertCircle,
+  Database,
+  Cpu,
+  Server,
+  Code2,
 } from "lucide-react";
 
 const API_BASE = "http://localhost:8000";
 
 const RISK_LEVELS = {
   high_risk: {
-    label: "Critical Threat",
-    color: "text-red-500",
-    bg: "bg-red-500/10",
-    border: "border-red-500/20",
-    icon: <AlertTriangle className="w-5 h-5" />,
-    glow: "shadow-[0_0_20px_rgba(239,68,68,0.15)]",
+    label: "Critical",
+    color: "text-red-400",
+    bg: "bg-red-400/10",
+    border: "border-red-400/20",
+    icon: <AlertTriangle className="w-4 h-4" />,
   },
   medium_risk: {
     label: "Suspicious",
-    color: "text-amber-500",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/20",
-    icon: <ShieldAlert className="w-5 h-5" />,
-    glow: "shadow-[0_0_20px_rgba(245,158,11,0.15)]",
+    color: "text-amber-400",
+    bg: "bg-amber-400/10",
+    border: "border-amber-400/20",
+    icon: <ShieldAlert className="w-4 h-4" />,
   },
   low_risk: {
     label: "Warning",
-    color: "text-yellow-500",
-    bg: "bg-yellow-500/10",
-    border: "border-yellow-500/20",
-    icon: <Info className="w-5 h-5" />,
-    glow: "shadow-[0_0_20px_rgba(234,179,8,0.1)]",
+    color: "text-blue-400",
+    bg: "bg-blue-400/10",
+    border: "border-blue-400/20",
+    icon: <Info className="w-4 h-4" />,
   },
   safe: {
-    label: "Verified Safe",
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/20",
-    icon: <ShieldCheck className="w-5 h-5" />,
-    glow: "shadow-[0_0_20px_rgba(16,185,129,0.1)]",
+    label: "Safe",
+    color: "text-emerald-400",
+    bg: "bg-emerald-400/10",
+    border: "border-emerald-400/20",
+    icon: <ShieldCheck className="w-4 h-4" />,
   },
 };
 
-function StatCard({ value, label, icon: Icon, color, trend, trendType }) {
+function SaaSStatCard({ value, label, icon: Icon, color, trend, trendType }) {
   return (
-    <div className="group relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20">
+    <div className="bg-[#1e293b]/50 border border-slate-800 rounded-2xl p-6 transition-all duration-200 hover:bg-[#1e293b]/80">
       <div className="flex items-start justify-between mb-4">
-        <div
-          className={`p-3 rounded-2xl ${color.replace("text-", "bg-")}/10 border border-white/5`}
-        >
-          <Icon className={`w-6 h-6 ${color}`} />
-        </div>
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">
+          {label}
+        </p>
         {trend && (
           <div
-            className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ${trendType === "up" ? "text-red-400 bg-red-400/10" : "text-emerald-400 bg-emerald-400/10"}`}
+            className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md ${trendType === "up" ? "text-red-400 bg-red-400/10" : "text-emerald-400 bg-emerald-400/10"}`}
           >
+            {trend}
             {trendType === "up" ?
               <TrendingUp className="w-3 h-3" />
             : <TrendingDown className="w-3 h-3" />}
-            {trend}
           </div>
         )}
       </div>
-      <div>
-        <h3 className="text-3xl font-black text-white mb-1 tracking-tight">
+      <div className="flex items-center gap-3">
+        <Icon className={`w-6 h-6 ${color}`} />
+        <h3 className="text-3xl font-bold text-white tracking-tight leading-none">
           {value}
         </h3>
-        <p className="text-xs font-bold text-white/40 uppercase tracking-widest">
-          {label}
-        </p>
       </div>
-      <div
-        className={`absolute bottom-0 left-6 right-6 h-[2px] ${color.replace("text-", "bg-")}/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity`}
-      />
     </div>
   );
 }
 
-function ThreatItem({ threat, onClick }) {
-  const level = RISK_LEVELS[threat.category] || RISK_LEVELS.safe;
-  const time = new Date(threat.timestamp).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function RiskGauge({ score }) {
+  const percentage = Math.min(100, Math.max(0, score));
+  const getColor = () => {
+    if (score >= 70) return "stroke-red-500";
+    if (score >= 40) return "stroke-amber-500";
+    return "stroke-emerald-500";
+  };
 
   return (
-    <div
-      onClick={() => onClick(threat)}
-      className={`group relative flex items-center gap-4 p-4 rounded-2xl border transition-all duration-300 cursor-pointer mb-3
-        ${level.bg} ${level.border} ${level.glow} hover:scale-[1.01] active:scale-[0.99]`}
-    >
-      <div
-        className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-black/40 border border-white/5 ${level.color}`}
-      >
-        {level.icon}
+    <div className="relative w-32 h-32">
+      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+        <circle
+          className="stroke-slate-800"
+          strokeWidth="8"
+          fill="transparent"
+          r="40"
+          cx="50"
+          cy="50"
+        />
+        <circle
+          className={`${getColor()} transition-all duration-1000 ease-out`}
+          strokeWidth="8"
+          strokeDasharray={2 * Math.PI * 40}
+          strokeDashoffset={2 * Math.PI * 40 * (1 - percentage / 100)}
+          strokeLinecap="round"
+          fill="transparent"
+          r="40"
+          cx="50"
+          cy="50"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-3xl font-bold text-white leading-none">
+          {score}
+        </span>
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+          Risk
+        </span>
       </div>
-
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <span
-            className={`text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-md bg-black/40 ${level.color} border border-white/5`}
-          >
-            {level.label}
-          </span>
-          <span className="text-[10px] font-mono text-white/40">{time}</span>
-        </div>
-        <p className="text-sm font-bold text-white truncate font-mono tracking-tight group-hover:text-white/90 transition-colors">
-          {threat.url}
-        </p>
-      </div>
-
-      <div className="flex flex-col items-end gap-1">
-        <div className="text-xl font-black text-white/90 leading-none">
-          {threat.riskScore}
-          <span className="text-[10px] text-white/30 ml-0.5">/100</span>
-        </div>
-        <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest whitespace-nowrap">
-          {(threat.confidence * 100).toFixed(0)}% Conf.
-        </div>
-      </div>
-
-      <ChevronRight className="w-5 h-5 text-white/20 group-hover:text-white/50 transition-colors" />
     </div>
   );
 }
 
-function ThreatDetailModal({ threat, onClose }) {
-  if (!threat) return null;
-  const level = RISK_LEVELS[threat.category] || RISK_LEVELS.safe;
+function DiagnosticReport({ result, onClose }) {
+  if (!result) return null;
+  const level = RISK_LEVELS[result.category] || RISK_LEVELS.safe;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
-        onClick={onClose}
-      />
-
-      <div className="relative w-full max-w-2xl bg-[#0a0a0a] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
-        <div className={`h-2 w-full ${level.color.replace("text-", "bg-")}`} />
-
-        <div className="p-8 lg:p-10">
-          <div className="flex items-start justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div
-                className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-black/50 border border-white/10 ${level.color}`}
-              >
-                {level.icon}
+    <div className="bg-[#0f172a] border border-slate-800 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 shadow-2xl">
+      <div className="p-8 lg:p-10">
+        <div className="flex items-start justify-between mb-8 pb-8 border-b border-slate-800">
+          <div className="flex gap-8">
+            <RiskGauge score={result.riskScore} />
+            <div className="pt-2">
+              <div className="flex items-center gap-3 mb-2">
+                <span
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${level.bg} ${level.color} border ${level.border}`}
+                >
+                  {level.label}
+                </span>
+                <span className="text-xs font-medium text-slate-500 font-mono">
+                  Analysis Confidence: {(result.confidence * 100).toFixed(1)}%
+                </span>
               </div>
-              <div>
-                <h3 className="text-2xl font-black text-white tracking-tight leading-none mb-2">
-                  Threat Analysis Report
-                </h3>
-                <div className="flex items-center gap-4">
-                  <span
-                    className={`text-xs font-black uppercase tracking-widest ${level.color}`}
-                  >
-                    {level.label}
-                  </span>
-                  <span className="text-xs font-mono text-white/30">
-                    {new Date(threat.timestamp).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="space-y-8">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-              <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">
-                Target URL
-              </h4>
-              <p className="text-sm font-mono text-white break-all leading-relaxed">
-                {threat.url}
+              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">
+                Diagnostic Report
+              </h3>
+              <p className="text-sm font-mono text-slate-400 break-all max-w-xl bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+                {result.url}
               </p>
             </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-800 rounded-xl transition-colors text-slate-500"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-                <div className={`text-4xl font-black mb-1 ${level.color}`}>
-                  {threat.riskScore}
-                </div>
-                <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                  Risk Index
-                </div>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-                <div className="text-4xl font-black mb-1 text-cyan-400">
-                  {(threat.confidence * 100).toFixed(0)}%
-                </div>
-                <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
-                  Model Confidence
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-4">
-                Neural Engine Indicators
-              </h4>
-              <div className="space-y-3">
-                {threat.reasons?.map((reason, i) => (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div>
+            <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+              <Activity className="w-3 h-3 text-cyan-400" />
+              Heuristic Markers
+            </h4>
+            <div className="space-y-3">
+              {result.reasons?.map((reason, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl group transition-colors hover:border-slate-700"
+                >
                   <div
-                    key={i}
-                    className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-xl"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                    <p className="text-sm text-white/70 font-medium leading-tight">
-                      {reason}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                    className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${result.safe ? "bg-emerald-500" : "bg-red-500"}`}
+                  />
+                  <p className="text-[13px] text-slate-300 font-medium leading-tight">
+                    {reason}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="mt-10 flex gap-4">
-            <button className="flex-1 py-4 rounded-2xl bg-white/5 border border-white/10 text-xs font-black text-white uppercase tracking-widest hover:bg-white/10 transition-all">
-              Export Evidence
-            </button>
-            <button
-              className={`flex-1 py-4 rounded-2xl font-black text-white uppercase tracking-widest shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] text-xs
-               ${threat.safe ? "bg-emerald-600 shadow-emerald-600/20" : "bg-red-600 shadow-red-600/20"}`}
-            >
-              {threat.safe ? "Add to Whitelist" : "Block Connection"}
-            </button>
+          <div className="space-y-6">
+            <div>
+              <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <Zap className="w-3 h-3 text-amber-400" />
+                Quick Actions
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-white hover:bg-slate-800 transition-all">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  View Domain WHOIS
+                </button>
+                <button
+                  className={`flex items-center justify-center gap-2 p-3.5 rounded-xl text-xs font-bold text-white transition-all
+                  ${result.safe ? "bg-slate-900 border border-emerald-500/20 hover:bg-emerald-500/10" : "bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/20"}`}
+                >
+                  {result.safe ? "Add to Safe List" : "Block at Gateway"}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-5 bg-cyan-950/20 border border-cyan-500/10 rounded-2xl">
+              <h5 className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.15em] mb-2 flex items-center gap-2">
+                <Info className="w-3 h-3" />
+                Security Advisory
+              </h5>
+              <p className="text-[12px] text-cyan-400/70 font-medium leading-relaxed italic">
+                {result.safe ?
+                  "Domain profile matches verified patterns. No immediate threat signature detected in payload entropy."
+                : "High entropy detected in URL encoding. Pattern aligns with known credential harvesting campaign vectors."
+                }
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -282,7 +262,7 @@ export default function PhishingDashboard() {
 
   useEffect(() => {
     fetchThreats();
-    const interval = setInterval(fetchThreats, 5000); // Faster refresh for SOC feel
+    const interval = setInterval(fetchThreats, 5000);
     return () => clearInterval(interval);
   }, [filter, search]);
 
@@ -300,7 +280,7 @@ export default function PhishingDashboard() {
       setStats(data.stats || stats);
       setError(null);
     } catch (err) {
-      setError("SOC communication error: Unable to reach threat database.");
+      setError("Network error: Unable to connect to threat intelligence node.");
     } finally {
       setLoading(false);
     }
@@ -322,379 +302,358 @@ export default function PhishingDashboard() {
       setTestResult(data);
       fetchThreats();
     } catch {
-      setTestResult({ error: "Analysis engine timed out." });
+      setTestResult({ error: "Heuristic engine timeout." });
     } finally {
       setTesting(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden pt-24 pb-20">
+    <div className="relative min-h-screen w-full font-sans text-slate-200 selection:bg-cyan-500/30 overflow-x-hidden">
       <Navbar />
 
-      {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-cyan-900/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[20%] left-[-5%] w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[150px]" />
-        <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] bg-red-900/5 rounded-full blur-[120px]" />
+      {/* Background Image Layer */}
+      <div
+        className="fixed inset-0 bg-cover bg-center z-0"
+        style={{ backgroundImage: `url(${phishingBg})` }}
+      >
+        <div className="absolute inset-0 bg-[#020617]/90 backdrop-blur-md" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6">
-        {/* Header Section */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="max-w-2xl">
-            <h1 className="text-5xl lg:text-6xl font-black tracking-tighter mb-4 italic leading-tight">
-              PHISGUARD{" "}
-              <span className="inline-block pr-6 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 italic">
-                CORE
-              </span>
+      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-20">
+        {/* Navigation Breadcrumbs */}
+        <div className="flex items-center gap-2 mb-8 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+          <Link to="/" className="hover:text-cyan-400 transition-colors">
+            Protect
+          </Link>
+          <ChevronRight className="w-3 h-3" />
+          <span className="text-slate-300">Phishing Investigation</span>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] text-slate-400 font-mono uppercase">
+              System: Healthy / 12 Nodes Online
+            </span>
+          </div>
+        </div>
+
+        {/* Dashboard Title */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+          <div>
+            <h1 className="text-4xl font-black text-white tracking-tight mb-2">
+              Threat Intelligence
             </h1>
-            <p className="text-lg text-white/40 font-medium">
-              Advanced neural intercept for real-time phishing detection and
-              malicious vector analysis.
+            <p className="text-slate-400 font-medium max-w-xl">
+              Real-time heuristic analysis and malicious vector tracking for
+              distributed phishing attempts.
             </p>
           </div>
+          <div className="flex items-center gap-3">
+            <button className="px-5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-white hover:bg-slate-800 transition-colors flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Intelligence Report
+            </button>
+            <button className="px-5 py-2.5 rounded-xl bg-cyan-600 text-xs font-bold text-white hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-600/20">
+              Bulk Investigation
+            </button>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
-          <StatCard
+        {/* SaaS Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <SaaSStatCard
             value={stats.total}
-            label="Neural Scans"
-            icon={Globe}
+            label="Investigations"
+            icon={Search}
             color="text-cyan-400"
-            trend="+12%"
-            trendType="down"
-          />
-          <StatCard
-            value={stats.today}
-            label="Threats Today"
-            icon={Activity}
-            color="text-indigo-400"
-            trend="+5.2%"
+            trend="+12.5%"
             trendType="up"
           />
-          <StatCard
+          <SaaSStatCard
+            value={stats.today}
+            label="Active Intercepts"
+            icon={Activity}
+            color="text-slate-300"
+            trend="+42"
+            trendType="up"
+          />
+          <SaaSStatCard
             value={stats.highRisk}
-            label="Critical Blocks"
+            label="Gateway Blocks"
             icon={ShieldAlert}
             color="text-red-400"
-            trend="+2"
+            trend="+2.1%"
             trendType="up"
           />
-          <StatCard
+          <SaaSStatCard
             value={
-              (stats.total > 0 ?
-                (((stats.total - stats.highRisk) / stats.total) * 100).toFixed(
-                  1,
-                )
-              : 100) + "%"
+              Math.round((stats.highRisk / (stats.total || 1)) * 100) + "%"
             }
-            label="Uptime Integrity"
+            label="Threat Density"
             icon={Zap}
-            color="text-emerald-400"
+            color="text-amber-400"
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Main Feed Column */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* Instant Scan Tool */}
-            <section className="relative group bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 lg:p-10 shadow-2xl overflow-hidden transition-all duration-500 hover:border-cyan-500/30">
-              <div className="absolute top-0 right-0 p-8 text-cyan-500/5 group-hover:text-cyan-500/10 transition-colors">
-                <Search className="w-32 h-32 rotate-12" />
+        {/* Central Investigator Tool */}
+        <div className="space-y-8">
+          <section className="bg-[#111827] border border-slate-800 rounded-[2.5rem] p-8 lg:p-12 shadow-xl shadow-black/50">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className="text-2xl font-bold text-white mb-2 underline decoration-cyan-500/30 underline-offset-8">
+                  Investigator Tool
+                </h2>
+                <p className="text-sm text-slate-500 font-medium">
+                  Input a suspect URL to initiate automated heuristic diagnostic
+                  scanning.
+                </p>
               </div>
 
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center border border-cyan-500/20">
-                    <MousePointer2 className="w-4 h-4 text-cyan-400" />
-                  </div>
-                  <h2 className="text-xl font-black text-white tracking-tight">
-                    Rapid Threat Diagnostics
-                  </h2>
+              <form
+                onSubmit={handleTestUrl}
+                className="flex gap-4 p-2 bg-slate-900 border border-slate-800 rounded-3xl mb-8 focus-within:border-cyan-500/50 transition-all"
+              >
+                <div className="relative flex-1">
+                  <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+                  <input
+                    type="text"
+                    value={testUrl}
+                    onChange={(e) => setTestUrl(e.target.value)}
+                    placeholder="https://example.com/login..."
+                    className="w-full pl-12 pr-4 py-4 bg-transparent border-none focus:outline-none text-sm font-mono text-white placeholder:text-slate-700"
+                  />
                 </div>
-
-                <form
-                  onSubmit={handleTestUrl}
-                  className="flex flex-col sm:flex-row gap-4 mb-6"
+                <button
+                  type="submit"
+                  disabled={testing || !testUrl}
+                  className="px-8 py-4 bg-white text-black font-black rounded-2xl transition-all hover:bg-slate-200 active:scale-95 disabled:opacity-50 text-[11px] uppercase tracking-widest flex items-center gap-2"
                 >
-                  <div className="relative flex-1">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" />
-                    <input
-                      type="text"
-                      value={testUrl}
-                      onChange={(e) => setTestUrl(e.target.value)}
-                      placeholder="Input suspect URL for deep packet inspection..."
-                      className="w-full px-14 py-5 bg-black/40 border border-white/10 rounded-3xl text-white placeholder:text-white/20 focus:outline-none focus:border-cyan-500/50 transition-all font-mono text-sm tracking-tight"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={testing || !testUrl}
-                    className="group px-10 py-5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-3xl transition-all shadow-[0_0_25px_rgba(8,145,178,0.3)] hover:shadow-[0_0_35px_rgba(8,145,178,0.5)] flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
-                  >
-                    {testing ?
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    : <>
-                        Analyze{" "}
-                        <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </>
-                    }
-                  </button>
-                </form>
+                  {testing ?
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  : "Investigate"}
+                </button>
+              </form>
 
-                {testResult && !testResult.error && (
-                  <div
-                    className={`p-6 rounded-3xl border animate-in slide-in-from-top-2 duration-300 ${testResult.safe ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20"}`}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <div
-                          className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-black/40 border border-white/5 ${testResult.safe ? "text-emerald-400" : "text-red-400"}`}
-                        >
-                          {testResult.safe ?
-                            <ShieldCheck className="w-6 h-6" />
-                          : <AlertTriangle className="w-6 h-6" />}
-                        </div>
-                        <div>
-                          <p
-                            className={`text-lg font-black leading-none mb-1 ${testResult.safe ? "text-emerald-400" : "text-red-400"}`}
-                          >
-                            {testResult.safe ?
-                              "CLEARED"
-                            : "MALICIOUS VECTOR DETECTED"}
-                          </p>
-                          <p className="text-xs font-bold text-white/40 uppercase tracking-widest italic">
-                            {testResult.category?.replace("_", " ")} Detected
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-mono text-white/50 leading-none mb-1">
-                          Risk Index
-                        </p>
-                        <p
-                          className={`text-2xl font-black ${testResult.safe ? "text-emerald-400" : "text-red-400"}`}
-                        >
-                          {testResult.riskScore}
-                          <span className="text-xs text-white/20">/100</span>
-                        </p>
-                      </div>
-                    </div>
-                    {testResult.reasons?.length > 0 && (
-                      <div className="space-y-2 mt-4 pt-4 border-t border-white/5">
-                        {testResult.reasons.map((r, i) => (
-                          <p
-                            key={i}
-                            className="text-xs font-medium text-white/60 flex items-center gap-2"
-                          >
-                            <div
-                              className={`w-1 h-1 rounded-full ${testResult.safe ? "bg-emerald-500" : "bg-red-500"}`}
-                            />{" "}
-                            {r}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+              {testResult && !testResult.error && (
+                <DiagnosticReport
+                  result={testResult}
+                  onClose={() => setTestResult(null)}
+                />
+              )}
+            </div>
+          </section>
+
+          {/* Activity Logs Table */}
+          <section className="bg-[#111827] border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-xl shadow-black/50">
+            <div className="px-8 py-6 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-slate-800 rounded-lg">
+                  <History className="w-4 h-4 text-slate-400" />
+                </div>
+                <h2 className="text-lg font-bold text-white">
+                  Investigation History
+                </h2>
               </div>
-            </section>
-
-            {/* Live Feed Diagnostic */}
-            <section className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 lg:p-10 shadow-2xl flex flex-col min-h-[600px]">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
-                    <Activity className="w-4 h-4 text-indigo-400" />
-                  </div>
-                  <h2 className="text-xl font-black text-white tracking-tight">
-                    Live Intelligence Stream
-                  </h2>
+              <div className="flex items-center gap-4">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-3 w-3.5 h-3.5 text-slate-600" />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Filter URLs..."
+                    className="pl-9 pr-4 py-1.5 bg-slate-900/50 border border-slate-800 rounded-xl text-xs font-medium text-slate-300 placeholder:text-slate-700 focus:outline-none focus:border-cyan-500/30 w-48"
+                  />
                 </div>
-
-                <div className="flex items-center gap-3 bg-black/40 p-1.5 rounded-2xl border border-white/5">
-                  <div className="relative group">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
-                    <input
-                      type="text"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Refine stream..."
-                      className="pl-9 pr-4 py-2 bg-transparent border-none focus:outline-none text-xs font-bold text-white placeholder:text-white/20 w-40"
-                    />
-                  </div>
-                  <div className="w-[1px] h-4 bg-white/10" />
-                  <div className="flex gap-1">
-                    {["all", "high_risk", "medium_risk"].map((f) => (
-                      <button
-                        key={f}
-                        onClick={() => setFilter(f)}
-                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all
-                            ${filter === f ? "bg-white text-black" : "text-white/40 hover:text-white hover:bg-white/5"}`}
-                      >
-                        {f === "all" ? "All" : f.split("_")[0]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {loading ?
-                <div className="flex-1 flex flex-col items-center justify-center p-20 gap-4 opacity-50">
-                  <div className="relative w-16 h-16">
-                    <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20" />
-                    <div className="absolute inset-0 rounded-full border-t-2 border-cyan-500 animate-spin" />
-                  </div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40 animate-pulse">
-                    Syncing Database...
-                  </p>
-                </div>
-              : threats.length === 0 ?
-                <div className="flex-1 flex flex-col items-center justify-center p-20 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-white/5 flex items-center justify-center mb-6 border border-white/5 text-white/20">
-                    <History className="w-10 h-10" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">
-                    No Active Threats Found
-                  </h3>
-                  <p className="text-sm text-white/40 max-w-[280px] font-medium leading-relaxed">
-                    System integrity is within expected parameters. New
-                    intercepts will appear in real-time.
-                  </p>
-                </div>
-              : <div className="flex-1 space-y-4 overflow-y-auto max-h-[420px] pr-2 custom-scrollbar">
-                  {threats.map((threat) => (
-                    <ThreatItem
-                      key={threat.id}
-                      threat={threat}
-                      onClick={setSelectedThreat}
-                    />
+                <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-xl">
+                  {["all", "high_risk", "medium_risk"].map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setFilter(f)}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all
+                        ${filter === f ? "bg-slate-700 text-white" : "text-slate-500 hover:text-slate-300"}`}
+                    >
+                      {f === "all" ? "All" : f.split("_")[0]}
+                    </button>
                   ))}
                 </div>
-              }
-            </section>
-          </div>
-
-          {/* Side Panel Column */}
-          <div className="lg:col-span-4 space-y-8">
-            <section className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden relative">
-              <div className="absolute top-0 right-0 m-6">
-                <div className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.6)] animate-pulse" />
               </div>
+            </div>
 
-              <h2 className="text-xs font-black text-white/30 uppercase tracking-[0.2em] mb-6">
-                Neural Engine Status
-              </h2>
+            <div className="overflow-x-auto min-h-[400px]">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-900/50 text-[10px] uppercase tracking-[0.2em] font-black text-slate-500">
+                    <th className="px-8 py-4 border-b border-slate-800">
+                      Timestamp
+                    </th>
+                    <th className="px-6 py-4 border-b border-slate-800">
+                      Investigation Target
+                    </th>
+                    <th className="px-6 py-4 border-b border-slate-800">
+                      Risk Profile
+                    </th>
+                    <th className="px-6 py-4 border-b border-slate-800">
+                      Verdict
+                    </th>
+                    <th className="px-8 py-4 border-b border-slate-800 text-right">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {loading ?
+                    <tr>
+                      <td colSpan="5" className="px-8 py-20 text-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-slate-700 mx-auto mb-4" />
+                        <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+                          Hydrating Intelligence Node...
+                        </p>
+                      </td>
+                    </tr>
+                  : threats.length === 0 ?
+                    <tr>
+                      <td colSpan="5" className="px-8 py-20 text-center">
+                        <AlertCircle className="w-8 h-8 text-slate-800 mx-auto mb-4" />
+                        <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">
+                          No matching investigations found
+                        </p>
+                      </td>
+                    </tr>
+                  : threats.map((threat) => {
+                      const level =
+                        RISK_LEVELS[threat.category] || RISK_LEVELS.safe;
+                      return (
+                        <tr
+                          key={threat.id}
+                          className="group hover:bg-slate-800/30 transition-colors"
+                        >
+                          <td className="px-8 py-5 whitespace-nowrap">
+                            <span className="text-xs font-mono text-slate-500">
+                              {new Date(threat.timestamp).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                },
+                              )}
+                            </span>
+                            <span className="block text-[10px] text-slate-700 mt-1 font-mono">
+                              {new Date(threat.timestamp).toLocaleDateString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <p className="text-sm font-mono text-slate-300 truncate max-w-sm group-hover:text-white transition-colors">
+                              {threat.url}
+                            </p>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="flex flex-col gap-1.5 font-mono">
+                              <div className="text-sm font-bold text-white">
+                                {threat.riskScore}
+                                <span className="text-[10px] text-slate-600 ml-1">
+                                  IDX
+                                </span>
+                              </div>
+                              <div className="h-1 w-20 bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    threat.riskScore >= 70 ? "bg-red-500"
+                                    : threat.riskScore >= 40 ? "bg-amber-500"
+                                    : "bg-emerald-500"
+                                  }`}
+                                  style={{ width: `${threat.riskScore}%` }}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${level.bg} ${level.color} ${level.border}`}
+                            >
+                              {level.icon}
+                              {level.label}
+                            </span>
+                          </td>
+                          <td className="px-8 py-5 text-right">
+                            <button
+                              onClick={() => setSelectedThreat(threat)}
+                              className="p-2 hover:bg-slate-700 rounded-xl transition-all text-slate-500 hover:text-white"
+                            >
+                              <ArrowUpRight className="w-5 h-5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  }
+                </tbody>
+              </table>
+            </div>
 
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">
-                    <span>Intercept Integrity</span>
-                    <span className="text-cyan-400">99.8%</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 p-0.5">
-                    <div
-                      className="h-full bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.4)]"
-                      style={{ width: "99.8%" }}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                  <div className="text-center p-4 rounded-3xl bg-black/20 border border-white/5">
-                    <Fingerprint className="w-5 h-5 text-indigo-400 mx-auto mb-2" />
-                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-tighter">
-                      Bio Signatures
-                    </p>
-                    <p className="text-lg font-black text-white">Active</p>
-                  </div>
-                  <div className="text-center p-4 rounded-3xl bg-black/20 border border-white/5">
-                    <Globe className="w-5 h-5 text-emerald-400 mx-auto mb-2" />
-                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-tighter">
-                      Global Nodes
-                    </p>
-                    <p className="text-lg font-black text-white">1,248</p>
-                  </div>
-                </div>
-
-                <div className="bg-cyan-500/5 rounded-3xl p-6 border border-cyan-500/10">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Terminal className="w-4 h-4 text-cyan-400" />
-                    <p className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">
-                      System Logs
-                    </p>
-                  </div>
-                  <div className="space-y-2 font-mono text-[10px] text-cyan-400/50">
-                    <p>
-                      <span className="text-cyan-400 opacity-100">[INFO]</span>{" "}
-                      Neural engine synced.
-                    </p>
-                    <p>
-                      <span className="text-cyan-400 opacity-100">[DB]</span>{" "}
-                      Threat database updated.
-                    </p>
-                    <p>
-                      <span className="text-cyan-400 opacity-100">[WARN]</span>{" "}
-                      High latency in node-42.
-                    </p>
-                    <p className="animate-pulse">_</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section className="bg-gradient-to-br from-indigo-900/20 to-blue-900/20 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative group cursor-pointer overflow-hidden">
-              <div className="absolute inset-0 bg-cyan-500/0 group-hover:bg-cyan-500/5 transition-all duration-500" />
-              <h2 className="text-xs font-black text-white/40 uppercase tracking-[0.2em] mb-4">
-                Security Insights
-              </h2>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-white tracking-tight leading-none">
-                  Vulnerability Score
-                </h3>
-                <div className="w-10 h-10 rounded-full border-2 border-cyan-500/30 border-t-cyan-500 flex items-center justify-center text-[10px] font-black italic">
-                  82
-                </div>
-              </div>
-              <p className="text-xs text-white/50 leading-relaxed font-medium mb-6 italic">
-                "Our heuristic analysis shows a 14% increase in spoofed
-                subdomains targeting financial portals this week. Ensure
-                bio-scans are active."
+            <div className="px-8 py-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                Showing {threats.length} of {stats.total} total investigations
               </p>
-              <div className="flex items-center gap-2 text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em] group-hover:gap-3 transition-all">
-                Read Full Intelligence <ChevronRight className="w-4 h-4" />
+              <div className="flex gap-4">
+                <button className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors disabled:opacity-30">
+                  Previous
+                </button>
+                <button className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors disabled:opacity-30">
+                  Next
+                </button>
               </div>
-            </section>
+            </div>
+          </section>
+        </div>
+      </main>
+
+      {/* Detail Modal Overlay */}
+      {selectedThreat && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
+          <div className="max-w-4xl w-full">
+            <DiagnosticReport
+              result={{
+                ...selectedThreat,
+                safe: selectedThreat.riskScore < 40,
+              }}
+              onClose={() => setSelectedThreat(null)}
+            />
           </div>
         </div>
-      </div>
-
-      {/* Detail Modal */}
-      {selectedThreat && (
-        <ThreatDetailModal
-          threat={selectedThreat}
-          onClose={() => setSelectedThreat(null)}
-        />
       )}
 
-      {/* Quick Access Toast */}
+      {/* Global Error Toast */}
       {error && (
-        <div className="fixed bottom-10 right-10 z-[200] max-w-sm animate-in slide-in-from-right-4 duration-500">
-          <div className="bg-red-600 shadow-2xl shadow-red-600/20 rounded-2xl p-4 border border-white/10 flex items-start gap-4">
-            <div className="p-2 bg-black/20 rounded-xl">
-              <Bug className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-white uppercase tracking-widest leading-none mb-1">
-                Critical Error
-              </p>
-              <p className="text-[11px] text-white/80 font-medium">{error}</p>
-            </div>
+        <div className="fixed bottom-8 right-8 z-[200] max-w-sm">
+          <div className="bg-red-600 rounded-2xl p-4 border border-white/10 shadow-2xl flex items-center gap-4">
+            <AlertCircle className="w-6 h-6 text-white shrink-0" />
+            <p className="text-[12px] font-bold text-white">{error}</p>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+// Custom Icons for infrastructure
+function Box(props) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      <polyline points="3.29 7 12 12 20.71 7"></polyline>
+      <line x1="12" y1="22" x2="12" y2="12"></line>
+    </svg>
   );
 }

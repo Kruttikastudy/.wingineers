@@ -258,6 +258,8 @@ function getFileNameFromUrl(url, mediaType = "video") {
     if (!fileName.includes(".")) {
       if (mediaType === "audio") {
         fileName += ".mp3";
+      } else if (mediaType === "image") {
+        fileName += ".jpg";
       } else {
         fileName += ".mp4"; // Default to mp4 for video or auto
       }
@@ -265,7 +267,9 @@ function getFileNameFromUrl(url, mediaType = "video") {
 
     return fileName;
   } catch {
-    return mediaType === "audio" ? "media.mp3" : "media.mp4";
+    if (mediaType === "audio") return "media.mp3";
+    if (mediaType === "image") return "media.jpg";
+    return "media.mp4";
   }
 }
 
@@ -332,6 +336,13 @@ function createDeepfakeContextMenus() {
       contexts: ["audio"],
     });
 
+    // Image elements context menu
+    chrome.contextMenus.create({
+      id: "deepfake-check-image",
+      title: "🖼️ Check for Deepfakes",
+      contexts: ["image"],
+    });
+
     // Links to media files
     chrome.contextMenus.create({
       id: "deepfake-check-link",
@@ -348,6 +359,11 @@ function createDeepfakeContextMenus() {
         "*://*/*.ogg",
         "*://*/*.m4a",
         "*://*/*.flac",
+        "*://*/*.jpg",
+        "*://*/*.jpeg",
+        "*://*/*.png",
+        "*://*/*.webp",
+        "*://*/*.avif",
       ],
     });
 
@@ -376,6 +392,10 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       mediaUrl = info.srcUrl;
       mediaType = "audio";
       break;
+    case "deepfake-check-image":
+      mediaUrl = info.srcUrl;
+      mediaType = "image";
+      break;
     case "deepfake-check-link":
       mediaUrl = info.linkUrl;
       mediaType = inferMediaType(mediaUrl);
@@ -403,6 +423,10 @@ function inferMediaType(url) {
   }
   for (const ext of audioExts) {
     if (url.includes(ext)) return "audio";
+  }
+  const imageExts = [".jpg", ".jpeg", ".png", ".webp", ".avif"];
+  for (const ext of imageExts) {
+    if (url.includes(ext)) return "image";
   }
   return "auto";
 }
