@@ -3,7 +3,7 @@
  * Intercepts navigations and checks URLs against the backend API.
  */
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://127.0.0.1:8000';
 const RISK_THRESHOLD = 40; // Score at which we block
 
 // Cache of recently scanned safe URLs (to avoid re-checking)

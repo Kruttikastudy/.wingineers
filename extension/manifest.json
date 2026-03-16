@@ -8,7 +8,8 @@
     "storage",
     "activeTab",
     "notifications",
-    "scripting"
+    "scripting",
+    "contextMenus"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -43,7 +44,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["warning.html"],
+      "resources": ["warning.html", "deepfake_result.html"],
       "matches": ["<all_urls>"]
     }
   ]

@@ -3,7 +3,7 @@
  * Controls the extension popup UI.
  */
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'http://127.0.0.1:8000';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const toggleBtn = document.getElementById('toggleBtn');
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Check API health ──
   try {
-    const response = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(3000) });
+    const response = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
     if (response.ok) {
       apiStatus.textContent = 'Connected';
       apiStatus.className = 'status-value status-active';

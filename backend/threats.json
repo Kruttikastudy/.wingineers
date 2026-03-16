@@ -1,0 +1,76 @@
+[
+  {
+    "id": 6,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T17:33:46.629253"
+  },
+  {
+    "id": 5,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T17:33:46.532061"
+  },
+  {
+    "id": 4,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T17:32:38.054273"
+  },
+  {
+    "id": 3,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T17:32:38.043264"
+  },
+  {
+    "id": 2,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T17:32:38.049265"
+  },
+  {
+    "id": 1,
+    "url": "http://secure-login-update.tk/",
+    "safe": false,
+    "riskScore": 84,
+    "confidence": 0.66,
+    "reasons": [
+      "Uses suspicious top-level domain \".tk\" \u2014 frequently abused for phishing",
+      "Contains suspicious keywords: login, secure, update \u2014 common in phishing URLs",
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "high_risk",
+    "timestamp": "2026-03-16T17:17:54.777705"
+  }
+]
