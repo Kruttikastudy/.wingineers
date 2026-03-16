@@ -140,7 +140,7 @@
   "pg_mmtrsqxi_fdd6ec4283806fe46ac44caf": {
     "user_id": "pg_mmtrsqxi_fdd6ec4283806fe46ac44caf",
     "created_at": "2026-03-16T22:44:06.579736Z",
-    "total_scans": 1,
+    "total_scans": 5,
     "total_threats": 0,
     "domain_history": [
       {
@@ -148,18 +148,43 @@
         "timestamp": "2026-03-16T22:44:06.580728Z",
         "risk_score": 14,
         "category": "safe"
+      },
+      {
+        "domain": "httpforever.com",
+        "timestamp": "2026-03-16T22:45:23.352043Z",
+        "risk_score": 14,
+        "category": "safe"
+      },
+      {
+        "domain": "httpforever.com",
+        "timestamp": "2026-03-16T22:45:27.105155Z",
+        "risk_score": 14,
+        "category": "safe"
+      },
+      {
+        "domain": "httpforever.com",
+        "timestamp": "2026-03-16T22:50:48.383773Z",
+        "risk_score": 14,
+        "category": "safe"
+      },
+      {
+        "domain": "secure-login-update.tk",
+        "timestamp": "2026-03-16T23:17:15.913678Z",
+        "risk_score": 30,
+        "category": "low_risk"
       }
     ],
     "daily_scores": [
       {
         "date": "2026-03-16",
-        "avg_score": 14,
-        "scan_count": 1,
+        "avg_score": 17.2,
+        "scan_count": 5,
         "threat_count": 0
       }
     ],
     "top_domains": [
-      "httpforever.com"
+      "httpforever.com",
+      "secure-login-update.tk"
     ]
   }
 }

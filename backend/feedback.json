@@ -1,5 +1,17 @@
 [
   {
+    "id": 2,
+    "url": "http://httpforever.com/",
+    "original_verdict": "medium_risk",
+    "original_score": 40,
+    "user_label": "phishing",
+    "user_id": "pg_mmtrsqxi_fdd6ec4283806fe46ac44caf",
+    "raw_text": null,
+    "timestamp": "2026-03-16T22:45:19.954915Z",
+    "is_false_positive": false,
+    "is_false_negative": false
+  },
+  {
     "id": 1,
     "url": "http://httpforever.com/",
     "original_verdict": "medium_risk",

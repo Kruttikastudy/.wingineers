@@ -101,12 +101,7 @@ export default function DeepfakeDetection() {
   const isVideo = file && file.type.startsWith("video/");
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-emerald-500/30 overflow-x-hidden pt-24 pb-20 flex flex-col">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-emerald-900/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[20%] right-[-5%] w-[500px] h-[500px] bg-cyan-900/10 rounded-full blur-[150px]" />
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white font-sans overflow-x-hidden pt-24 pb-20 flex flex-col">
       <div className="relative z-20">
         <Navbar />
       </div>

@@ -1,5 +1,55 @@
 [
   {
+    "id": 22,
+    "url": "http://secure-login-update.tk/",
+    "safe": false,
+    "riskScore": 84,
+    "confidence": 0.66,
+    "reasons": [
+      "Uses suspicious top-level domain \".tk\" \u2014 frequently abused for phishing",
+      "Contains suspicious keywords: login, secure, update \u2014 common in phishing URLs",
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "high_risk",
+    "timestamp": "2026-03-16T23:17:12.712695Z"
+  },
+  {
+    "id": 21,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:50:48.024391Z"
+  },
+  {
+    "id": 20,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:45:26.752697Z"
+  },
+  {
+    "id": 19,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:45:22.762880Z"
+  },
+  {
     "id": 18,
     "url": "http://httpforever.com/",
     "safe": false,
