@@ -1,4 +1,4 @@
-import { Compass, Menu, ArrowRight } from "lucide-react";
+import { Compass, Menu, ArrowRight, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
@@ -35,6 +35,12 @@ export default function Navbar() {
           className="text-sm font-semibold text-white/80 hover:text-white transition-colors tracking-wide"
         >
           Phishing
+        </Link>
+        <Link
+          to="/dashboard/voice"
+          className="text-sm font-semibold text-white/80 hover:text-white transition-colors tracking-wide"
+        >
+          Voice
         </Link>
         <a
           href="#mitigation"
@@ -81,9 +87,14 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Menu Icon */}
-      <button className="lg:hidden p-2 text-white/80 hover:text-white bg-white/5 border border-white/10 rounded-xl backdrop-blur-md">
-        <Menu className="w-6 h-6" />
-      </button>
+      <div className="lg:hidden flex items-center gap-4">
+        <Link to="/dashboard/voice" className="p-2 text-white/80 hover:text-white bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-md">
+          <Phone className="w-5 h-5" />
+        </Link>
+        <button className="p-2 text-white/80 hover:text-white bg-white/5 border border-white/10 rounded-xl backdrop-blur-md">
+          <Menu className="w-6 h-6" />
+        </button>
+      </div>
     </nav>
   );
 }
