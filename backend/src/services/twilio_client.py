@@ -30,7 +30,12 @@ async def send_async_verdict_reply(to_number: str, text_message: str):
         return
 
     use_whatsapp = str(to_number).strip().startswith("whatsapp:") or str(settings.TWILIO_PHONE_NUMBER).strip().startswith("whatsapp:")
-    from_number = _ensure_whatsapp_address(settings.TWILIO_PHONE_NUMBER) if use_whatsapp else settings.TWILIO_PHONE_NUMBER
+
+    if use_whatsapp:
+        wa_number = settings.TWILIO_WHATSAPP_NUMBER or settings.TWILIO_PHONE_NUMBER
+        from_number = _ensure_whatsapp_address(wa_number)
+    else:
+        from_number = settings.TWILIO_PHONE_NUMBER
     to_target = _ensure_whatsapp_address(to_number) if use_whatsapp else to_number
         
     try:

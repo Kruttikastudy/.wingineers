@@ -1,5 +1,4 @@
 import logging
-import json
 
 from fastapi import APIRouter, Request, Response, HTTPException
 from twilio.request_validator import RequestValidator
@@ -9,9 +8,32 @@ from ..config import settings
 from ..services.ingest import handle_incoming_message
 from ..services.event_hub import event_hub
 from ..services.voice_history_manager import voice_history_manager
+from ..services.voice_analyzer import analyze_transcript
+from ..services.twilio_client import send_async_verdict_reply
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# ── Per-call accumulator: tracks risk across speech chunks ──
+_call_state: dict[str, dict] = {}
+
+
+def _accumulate_analysis(call_sid: str, analysis: dict):
+    """Accumulate threat indicators across multiple speech chunks for a call."""
+    if call_sid not in _call_state:
+        _call_state[call_sid] = {"max_risk": 0, "all_indicators": set(), "transcripts": []}
+    state = _call_state[call_sid]
+    state["max_risk"] = max(state["max_risk"], analysis.get("risk_score", 0))
+    for reason in analysis.get("reasons", []):
+        state["all_indicators"].add(reason)
+
+
+def _pop_call_state(call_sid: str) -> dict:
+    """Retrieve and remove accumulated state for a finished call."""
+    state = _call_state.pop(call_sid, None)
+    if not state:
+        return {"max_risk": 0, "all_indicators": []}
+    return {"max_risk": state["max_risk"], "all_indicators": sorted(state["all_indicators"])}
 
 
 def _form_data_to_payload(form_data):
@@ -79,9 +101,10 @@ async def twilio_voice_webhook(request: Request):
         logger.info("Voice webhook: CallSid=%s From=%s SpeechResult=%s", call_sid, caller, speech_result)
 
         if speech_result:
-            # We got a transcript chunk — analyse and broadcast via SSE
+            # We got a transcript chunk — analyse, accumulate, and broadcast via SSE
             try:
-                analysis = _analyse_voice_transcript(speech_result)
+                analysis = analyze_transcript(speech_result)
+                _accumulate_analysis(call_sid, analysis)
                 payload = {
                     "call_sid": call_sid,
                     "from": caller,
@@ -137,16 +160,36 @@ async def twilio_voice_status_webhook(request: Request):
         logger.info("Voice status: CallSid=%s Status=%s Duration=%s", call_sid, call_status, duration)
 
         if call_status in ("completed", "busy", "no-answer", "failed", "canceled"):
+            accumulated = _pop_call_state(call_sid)
             summary = {
                 "call_sid": call_sid,
                 "from": caller,
                 "status": call_status,
                 "duration_sec": duration,
-                "overall_risk": 0,
-                "all_indicators": [],
+                "overall_risk": accumulated["max_risk"],
+                "all_indicators": accumulated["all_indicators"],
             }
             event_hub.publish("VOICE_CALL_ENDED", summary)
             voice_history_manager.add_call(summary)
+
+            # Send WhatsApp alert if risk is non-trivial
+            if accumulated["max_risk"] >= 20 and settings.ALERT_RECIPIENT_NUMBER:
+                try:
+                    indicators_str = ", ".join(accumulated["all_indicators"]) or "None"
+                    alert_msg = (
+                        f"🚨 *WinGineers Scam Alert*\n\n"
+                        f"Call from {caller} flagged.\n"
+                        f"Risk Score: {accumulated['max_risk']}/100\n"
+                        f"Indicators: {indicators_str}\n"
+                        f"Duration: {duration}s | Status: {call_status}"
+                    )
+                    wa_number = settings.TWILIO_WHATSAPP_NUMBER or settings.TWILIO_PHONE_NUMBER
+                    await send_async_verdict_reply(
+                        to_number=f"whatsapp:{settings.ALERT_RECIPIENT_NUMBER}",
+                        text_message=alert_msg,
+                    )
+                except Exception as wa_err:
+                    logger.error("Failed to send WhatsApp alert: %s", wa_err)
 
     except HTTPException:
         raise
@@ -156,26 +199,3 @@ async def twilio_voice_status_webhook(request: Request):
     # Always return 200 with valid TwiML for status callbacks
     return Response(content="<Response/>", media_type="application/xml")
 
-
-def _analyse_voice_transcript(text: str) -> dict:
-    """Basic keyword-based threat scoring for a voice transcript chunk."""
-    threat_keywords = {
-        "otp": 20, "password": 25, "bank": 15, "transfer": 20,
-        "verify": 10, "account": 15, "urgent": 15, "immediately": 15,
-        "suspend": 20, "block": 15, "aadhaar": 20, "pan card": 20,
-        "cvv": 25, "pin": 20, "credit card": 20, "debit card": 20,
-    }
-    lower = text.lower()
-    risk_score = 0
-    reasons = []
-    for keyword, weight in threat_keywords.items():
-        if keyword in lower:
-            risk_score += weight
-            reasons.append(keyword.upper())
-
-    risk_score = min(risk_score, 100)
-    return {
-        "risk_score": risk_score,
-        "confidence": round(min(50 + risk_score * 0.5, 99), 1),
-        "reasons": reasons,
-    }
