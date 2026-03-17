@@ -9,6 +9,7 @@ from ..config import settings
 from ..services.ingest import handle_incoming_message
 from ..services.voice_analyzer import analyze_transcript
 from ..services.event_hub import event_hub
+from ..services.voice_history_manager import voice_history_manager
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -81,11 +82,12 @@ async def twilio_voice_webhook(request: Request):
     
     # Initialize state for this new call
     call_sid = form_data.get('CallSid', 'unknown')
-    call_state[call_sid] = {
-        "reasons": set(),
-        "max_risk": 0,
-        "from": form_data.get('From', 'unknown')
-    }
+    if call_sid not in call_state:
+        call_state[call_sid] = {
+            "reasons": set(),
+            "max_risk": 0,
+            "from": form_data.get('From', 'unknown')
+        }
     
     gather = Gather(
         input='speech',
@@ -179,6 +181,9 @@ async def handle_voice_status(request: Request):
             
             # Publish final summary
             event_hub.publish("VOICE_CALL_ENDED", summary)
+            
+            # Save to history
+            voice_history_manager.add_call(summary)
             
             # Clean up
             call_state.pop(call_sid, None)

@@ -76,7 +76,7 @@ def analyze_url(url_string: str) -> Dict[str, Any]:
             "confidence": 1.0,
             "reasons": ["Invalid or empty URL"],
             "category": "invalid",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
     # Parse URL
@@ -93,7 +93,7 @@ def analyze_url(url_string: str) -> Dict[str, Any]:
             "confidence": 0.9,
             "reasons": ["Malformed URL that cannot be parsed"],
             "category": "malformed",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
     hostname = parsed.hostname.lower() if parsed.hostname else ""
@@ -109,7 +109,7 @@ def analyze_url(url_string: str) -> Dict[str, Any]:
             "confidence": 0.95,
             "reasons": [],
             "category": "trusted",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
     # Check 1: IP address instead of domain
@@ -212,7 +212,7 @@ def analyze_url(url_string: str) -> Dict[str, Any]:
         "confidence": round(confidence, 2),
         "reasons": reasons,
         "category": category,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat() + "Z"
     }
 
 

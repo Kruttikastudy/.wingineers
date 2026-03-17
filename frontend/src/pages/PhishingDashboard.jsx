@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import Navbar from "../components/shared/Navbar";
-import phishingBg from "../assets/phising.avif";
 import {
   ShieldAlert,
   ShieldCheck,
@@ -73,7 +72,7 @@ const RISK_LEVELS = {
 
 function SaaSStatCard({ value, label, icon: Icon, color, trend, trendType }) {
   return (
-    <div className="bg-[#1e293b]/50 border border-slate-800 rounded-2xl p-6 transition-all duration-200 hover:bg-[#1e293b]/80">
+    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 transition-all duration-300 hover:bg-white/10 hover:border-white/20">
       <div className="flex items-start justify-between mb-4">
         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none">
           {label}
@@ -147,9 +146,9 @@ function DiagnosticReport({ result, onClose }) {
   const level = RISK_LEVELS[result.category] || RISK_LEVELS.safe;
 
   return (
-    <div className="bg-[#0f172a] border border-slate-800 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 shadow-2xl">
+    <div className="bg-black/80 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500 shadow-2xl">
       <div className="p-8 lg:p-10">
-        <div className="flex items-start justify-between mb-8 pb-8 border-b border-slate-800">
+        <div className="flex items-start justify-between mb-8 pb-8 border-b border-white/10">
           <div className="flex gap-8">
             <RiskGauge score={result.riskScore} />
             <div className="pt-2">
@@ -166,7 +165,7 @@ function DiagnosticReport({ result, onClose }) {
               <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">
                 Diagnostic Report
               </h3>
-              <p className="text-sm font-mono text-slate-400 break-all max-w-xl bg-slate-900/50 p-3 rounded-xl border border-slate-800">
+              <p className="text-sm font-mono text-white/60 break-all max-w-xl bg-white/5 p-3 rounded-xl border border-white/10">
                 {result.url}
               </p>
             </div>
@@ -189,7 +188,7 @@ function DiagnosticReport({ result, onClose }) {
               {result.reasons?.map((reason, i) => (
                 <div
                   key={i}
-                  className="flex items-start gap-3 p-4 bg-slate-900/50 border border-slate-800 rounded-xl group transition-colors hover:border-slate-700"
+                  className="flex items-start gap-3 p-4 bg-white/5 border border-white/10 rounded-xl group transition-colors hover:border-white/20"
                 >
                   <div
                     className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${result.safe ? "bg-emerald-500" : "bg-red-500"}`}
@@ -209,13 +208,13 @@ function DiagnosticReport({ result, onClose }) {
                 Quick Actions
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-bold text-white hover:bg-slate-800 transition-all">
+                <button className="flex items-center justify-center gap-2 p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white hover:bg-white/10 transition-all">
                   <ExternalLink className="w-3.5 h-3.5" />
                   View Domain WHOIS
                 </button>
                 <button
                   className={`flex items-center justify-center gap-2 p-3.5 rounded-xl text-xs font-bold text-white transition-all
-                  ${result.safe ? "bg-slate-900 border border-emerald-500/20 hover:bg-emerald-500/10" : "bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/20"}`}
+                  ${result.safe ? "bg-white/5 border border-emerald-500/20 hover:bg-emerald-500/10" : "bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/20"}`}
                 >
                   {result.safe ? "Add to Safe List" : "Block at Gateway"}
                 </button>
@@ -309,18 +308,10 @@ export default function PhishingDashboard() {
   }
 
   return (
-    <div className="relative min-h-screen w-full font-sans text-slate-200 selection:bg-cyan-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white font-sans overflow-x-hidden pt-24 pb-20">
       <Navbar />
 
-      {/* Background Image Layer */}
-      <div
-        className="fixed inset-0 bg-cover bg-center z-0"
-        style={{ backgroundImage: `url(${phishingBg})` }}
-      >
-        <div className="absolute inset-0 bg-[#020617]/90 backdrop-blur-md" />
-      </div>
-
-      <main className="relative z-10 max-w-7xl mx-auto px-6 pt-28 pb-20">
+      <main className="relative z-10 max-w-7xl mx-auto px-6">
         {/* Navigation Breadcrumbs */}
         <div className="flex items-center gap-2 mb-8 text-[11px] font-bold uppercase tracking-widest text-slate-500">
           <Link to="/" className="hover:text-cyan-400 transition-colors">
@@ -396,7 +387,7 @@ export default function PhishingDashboard() {
 
         {/* Central Investigator Tool */}
         <div className="space-y-8">
-          <section className="bg-[#111827] border border-slate-800 rounded-[2.5rem] p-8 lg:p-12 shadow-xl shadow-black/50">
+          <section className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 lg:p-12 shadow-2xl relative overflow-hidden">
             <div className="max-w-4xl mx-auto">
               <div className="text-center mb-10">
                 <h2 className="text-2xl font-bold text-white mb-2 underline decoration-cyan-500/30 underline-offset-8">
@@ -410,7 +401,7 @@ export default function PhishingDashboard() {
 
               <form
                 onSubmit={handleTestUrl}
-                className="flex gap-4 p-2 bg-slate-900 border border-slate-800 rounded-3xl mb-8 focus-within:border-cyan-500/50 transition-all"
+                className="flex gap-4 p-2 bg-black/40 border border-white/10 rounded-3xl mb-8 focus-within:border-cyan-500/50 transition-all"
               >
                 <div className="relative flex-1">
                   <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
@@ -443,8 +434,8 @@ export default function PhishingDashboard() {
           </section>
 
           {/* Activity Logs Table */}
-          <section className="bg-[#111827] border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-xl shadow-black/50">
-            <div className="px-8 py-6 border-b border-slate-800 flex items-center justify-between">
+          <section className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+            <div className="px-8 py-6 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-1.5 bg-slate-800 rounded-lg">
                   <History className="w-4 h-4 text-slate-400" />
@@ -470,7 +461,7 @@ export default function PhishingDashboard() {
                       key={f}
                       onClick={() => setFilter(f)}
                       className={`px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all
-                        ${filter === f ? "bg-slate-700 text-white" : "text-slate-500 hover:text-slate-300"}`}
+                        ${filter === f ? "bg-white/20 text-white" : "text-white/40 hover:text-white"}`}
                     >
                       {f === "all" ? "All" : f.split("_")[0]}
                     </button>
@@ -482,25 +473,25 @@ export default function PhishingDashboard() {
             <div className="overflow-x-auto min-h-[400px]">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-900/50 text-[10px] uppercase tracking-[0.2em] font-black text-slate-500">
-                    <th className="px-8 py-4 border-b border-slate-800">
+                  <tr className="bg-black/20 text-[10px] uppercase tracking-[0.2em] font-black text-white/50">
+                    <th className="px-8 py-4 border-b border-white/10">
                       Timestamp
                     </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
+                    <th className="px-6 py-4 border-b border-white/10">
                       Investigation Target
                     </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
+                    <th className="px-6 py-4 border-b border-white/10">
                       Risk Profile
                     </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
+                    <th className="px-6 py-4 border-b border-white/10">
                       Verdict
                     </th>
-                    <th className="px-8 py-4 border-b border-slate-800 text-right">
+                    <th className="px-8 py-4 border-b border-white/10 text-right">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800">
+                <tbody className="divide-y divide-white/5">
                   {loading ?
                     <tr>
                       <td colSpan="5" className="px-8 py-20 text-center">
@@ -525,7 +516,7 @@ export default function PhishingDashboard() {
                       return (
                         <tr
                           key={threat.id}
-                          className="group hover:bg-slate-800/30 transition-colors"
+                          className="group hover:bg-white/5 transition-colors"
                         >
                           <td className="px-8 py-5 whitespace-nowrap">
                             <span className="text-xs font-mono text-slate-500">
@@ -555,7 +546,7 @@ export default function PhishingDashboard() {
                                   IDX
                                 </span>
                               </div>
-                              <div className="h-1 w-20 bg-slate-800 rounded-full overflow-hidden">
+                              <div className="h-1 w-20 bg-white/10 rounded-full overflow-hidden">
                                 <div
                                   className={`h-full rounded-full ${
                                     threat.riskScore >= 70 ? "bg-red-500"
@@ -578,7 +569,7 @@ export default function PhishingDashboard() {
                           <td className="px-8 py-5 text-right">
                             <button
                               onClick={() => setSelectedThreat(threat)}
-                              className="p-2 hover:bg-slate-700 rounded-xl transition-all text-slate-500 hover:text-white"
+                              className="p-2 hover:bg-white/10 rounded-xl transition-all text-white/50 hover:text-white"
                             >
                               <ArrowUpRight className="w-5 h-5" />
                             </button>
@@ -591,15 +582,15 @@ export default function PhishingDashboard() {
               </table>
             </div>
 
-            <div className="px-8 py-4 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
-              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+            <div className="px-8 py-4 bg-black/40 border-t border-white/10 flex items-center justify-between">
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
                 Showing {threats.length} of {stats.total} total investigations
               </p>
               <div className="flex gap-4">
-                <button className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors disabled:opacity-30">
+                <button className="text-[10px] font-black text-white/40 hover:text-white uppercase tracking-widest transition-colors disabled:opacity-30">
                   Previous
                 </button>
-                <button className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors disabled:opacity-30">
+                <button className="text-[10px] font-black text-white/40 hover:text-white uppercase tracking-widest transition-colors disabled:opacity-30">
                   Next
                 </button>
               </div>

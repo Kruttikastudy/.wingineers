@@ -75,7 +75,7 @@ class FeedbackStore:
             "user_label": user_label,
             "user_id": user_id,
             "raw_text": raw_text[:500] if raw_text else None,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
             "is_false_positive": (
                 original_verdict in ("high_risk", "medium_risk") and user_label == "safe"
             ),

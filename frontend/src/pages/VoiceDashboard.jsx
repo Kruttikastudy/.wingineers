@@ -41,10 +41,22 @@ export default function VoiceDashboard() {
     setHistory(prev => {
       // Avoid duplicates if both heartbeat and status callback fire
       if (prev.find(h => h.call_sid === summary.call_sid)) return prev;
-      return [summary, ...prev].slice(0, 20);
+      return [summary, ...prev].slice(0, 100);
     });
     setLiveCalls(prev => prev.filter(c => c.call_sid !== summary.call_sid));
   };
+
+  useEffect(() => {
+    // Fetch initial history
+    fetch(`${API_BASE}/api/voice/history`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setHistory(data);
+        }
+      })
+      .catch(err => console.error("Failed to fetch voice history:", err));
+  }, []);
 
   useEffect(() => {
     const eventSource = new EventSource(`${API_BASE}/api/events`);
@@ -101,13 +113,8 @@ export default function VoiceDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-red-500/30 overflow-x-hidden pt-24 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white font-sans overflow-x-hidden pt-24 pb-20">
       <Navbar />
-
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-red-900/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[20%] left-[-5%] w-[500px] h-[500px] bg-amber-900/10 rounded-full blur-[150px]" />
-      </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
@@ -170,9 +177,9 @@ export default function VoiceDashboard() {
                           </div>
                           <div className="flex gap-8">
                             <div className="text-right border-r border-white/10 pr-8">
-                              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Risk Score</p>
-                              <span className={`text-2xl font-black ${call.analysis.risk_score > 60 ? 'text-red-500' : 'text-amber-500'}`}>
-                                {call.analysis.risk_score}
+                              <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">Max Risk Score</p>
+                              <span className={`text-2xl font-black ${(call.cumulative?.max_risk || call.analysis.risk_score) > 60 ? 'text-red-500' : 'text-amber-500'}`}>
+                                {call.cumulative?.max_risk || call.analysis.risk_score}
                                 <span className="text-xs text-white/20 ml-1">/100</span>
                               </span>
                             </div>
@@ -193,7 +200,7 @@ export default function VoiceDashboard() {
                         <div className="mb-4">
                           <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] mb-3">Threat Indicators</p>
                           <div className="flex flex-wrap gap-2">
-                            {call.analysis.reasons.map((reason, i) => (
+                            {(call.cumulative?.all_indicators || call.analysis.reasons).map((reason, i) => (
                               <span key={i} className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-[10px] font-black text-red-400 uppercase tracking-widest">
                                 {reason}
                               </span>
@@ -214,18 +221,18 @@ export default function VoiceDashboard() {
           <div className="lg:col-span-4 space-y-8">
              <section className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative">
                 <h2 className="text-xs font-black text-white/30 uppercase tracking-[0.2em] mb-6">Recent Alerts</h2>
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                    {history.length === 0 ? (
                       <p className="text-xs text-white/20 italic">No historical threats detected.</p>
                    ) : (
-                      history.slice(0, 5).map((h, i) => (
+                      history.map((h, i) => (
                         <div key={i} className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center gap-4 group transition-all hover:bg-white/10">
                            <div className={`w-2 h-2 rounded-full ${h.overall_risk > 60 ? 'bg-red-500' : h.overall_risk > 30 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                            <div className="flex-1 min-w-0">
                              <p className="text-xs font-bold text-white truncate">{h.from}</p>
                              <div className="flex items-center gap-2 mt-1">
                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded bg-white/5 ${h.overall_risk > 60 ? 'text-red-400' : 'text-amber-400'}`}>
-                                 SCORE: {h.overall_risk}
+                                 MAX SCORE: {h.overall_risk}
                                </span>
                                <p className="text-[10px] text-white/40 uppercase tracking-tighter">
                                  {h.duration_sec}s • {h.status}

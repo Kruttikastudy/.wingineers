@@ -443,9 +443,9 @@ function inferMediaType(url) {
  */
 function openDeepfakeResultModal(mediaUrl, mediaType) {
   // Close previous window if exists
-  if (deepfakeResultWindow) {
-    chrome.windows.remove(deepfakeResultWindow.id).catch(() => {
-      // Previous result window was already closed
+  if (deepfakeResultWindow && deepfakeResultWindow.id) {
+    chrome.windows.remove(deepfakeResultWindow.id).catch((err) => {
+      console.log("[PhishGuard] Note: Previous result window already closed or unreachable.");
     });
     deepfakeResultWindow = null;
   }
@@ -552,7 +552,9 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
         `&reasons=${encodeURIComponent(JSON.stringify(result.reasons))}` +
         `&category=${encodeURIComponent(result.category || 'unknown')}`;
 
-      chrome.tabs.update(details.tabId, { url: warningUrl });
+      chrome.tabs.update(details.tabId, { url: warningUrl }).catch(err => {
+        console.warn("[PhishGuard] Failed to redirect tab to warning page (tab likely closed):", err.message);
+      });
     }
   } catch (err) {
     console.error("Check failed:", err);

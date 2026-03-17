@@ -40,6 +40,154 @@
     "external_checks_failed": false
   },
   {
+    "id": 22,
+    "url": "http://secure-login-update.tk/",
+    "safe": false,
+    "riskScore": 84,
+    "confidence": 0.66,
+    "reasons": [
+      "Uses suspicious top-level domain \".tk\" \u2014 frequently abused for phishing",
+      "Contains suspicious keywords: login, secure, update \u2014 common in phishing URLs",
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "high_risk",
+    "timestamp": "2026-03-16T23:17:12.712695Z"
+  },
+  {
+    "id": 21,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:50:48.024391Z"
+  },
+  {
+    "id": 20,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:45:26.752697Z"
+  },
+  {
+    "id": 19,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:45:22.762880Z"
+  },
+  {
+    "id": 18,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:44:02.840570Z"
+  },
+  {
+    "id": 17,
+    "url": "https://accounts.google.com/ServiceLogin?access_type=offline&app_domain=http%3A%2F%2Flocalhost%3A58637&authuser=2&client_id=1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hANOcyhVnUS6jBx52zmnfj1Q5k7r4qb6HyhvMDJtpBru-CR6ahaIwT1V21StwcLZJS9wHGzfe95JBMn6P86LCjBqYwU0cfEB220lKYiEjJ4ghhht3zw21NiQvb8Noi-QPv1uyXy9ukZinxM3sCPMbgbxGkllIxED5-nUYZmEmFkFkB3MUdzAa1L_ywNfjzIrll-mo90oH_ZXh2fRp241ulZlENsDnva0bFWLn86N6t3ToXJ-WocXBF0uGrSuaRRnHvgp5wCnAcX2NFAPQoOv0RWRsbchKYPSdK-vjC_UwqCnvqNm3lSBrarRc_bAbOUU6mMwYMbWsGkDh6pN3g7NcGFVGPG7BwNCmy_w9UuiytR52G16L98spF9msqwQpVfeepCBm1gn4adTCHGuzv5YiJ8NE6VHIPlM9V-bkU_rh93MRogN1GuBW5y6pbSAsqAZ_s6X74DO7XVrdGvpnzTzn_RCho1NFkcH7aVhZJG4WC8fbBL2xKrFyOR-ZJWNguy9ub75SErv%26flowName%3DGeneralOAuthFlow%26as%3DS-1187543481%253A1773699515431254%26client_id%3D1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com%26requestPath%3D%252Fsignin%252Foauth%252Fconsent%23&dsh=S-1187543481%3A1773699515431254&flowName=GeneralOAuthFlow&o2v=2&opparams=%253F&passive=true&prompt=consent&redirect_uri=http%3A%2F%2Flocalhost%3A58637%2Foauth-callback&response_type=code&sacu=1&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcclog%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fexperimentsandconfigs&service=lso&state=3593e705-85a7-4a0d-8f46-2b49fa9b5893",
+    "safe": false,
+    "riskScore": 49,
+    "confidence": 0.66,
+    "reasons": [
+      "Unusually long URL (1586 characters) \u2014 may be hiding malicious content",
+      "Contains suspicious keywords: login, account, signin \u2014 common in phishing URLs",
+      "Heavy URL encoding (63 encoded chars) \u2014 may be obfuscating content"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:18:40.862656Z"
+  },
+  {
+    "id": 16,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:16:00.273852Z"
+  },
+  {
+    "id": 15,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:14:41.221670Z"
+  },
+  {
+    "id": 14,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:13:12.057117Z"
+  },
+  {
+    "id": 13,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:07:09.138040"
+  },
+  {
+    "id": 12,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:03:34.952885"
+  },
+  {
+    "id": 11,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-16T22:00:34.964429"
+  },
+  {
     "id": 10,
     "url": "ms-windows-store://pdp/?ProductId=9mvs1j51gmk6",
     "safe": false,

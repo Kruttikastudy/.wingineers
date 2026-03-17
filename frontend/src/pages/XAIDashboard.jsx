@@ -336,15 +336,8 @@ export default function XAIDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-purple-500/30 overflow-x-hidden pt-24 pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white font-sans overflow-x-hidden pt-24 pb-20">
       <Navbar />
-
-      {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-purple-900/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[20%] right-[-5%] w-[500px] h-[500px] bg-indigo-900/10 rounded-full blur-[150px]" />
-        <div className="absolute top-[40%] right-[30%] w-[300px] h-[300px] bg-cyan-900/5 rounded-full blur-[120px]" />
-      </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
         {/* Header */}

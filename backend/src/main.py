@@ -35,7 +35,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:8000",
     ],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -70,6 +70,17 @@ app.include_router(phishing.router, prefix="/api", tags=["phishing"])
 
 # Routes - XAI & Explainability
 app.include_router(xai.router, prefix="/api", tags=["xai"])
+
+from .services.voice_history_manager import voice_history_manager
+
+@app.get("/api/voice/history", tags=["Voice"])
+async def get_voice_history():
+    """Get recent voice call history."""
+    try:
+        return voice_history_manager.get_history()
+    except Exception as e:
+        logger.error(f"Error fetching voice history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch voice history")
 
 
 # Routes - Deepfake Detection
