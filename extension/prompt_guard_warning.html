@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🛡️ Prompt Injection Alert — PhishGuard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #1a0000 0%, #2d0a0a 30%, #0d0d1a 100%);
+      color: #fff;
+      padding: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 640px;
+      width: 100%;
+      animation: slideUp 0.4s ease-out;
+      padding-top: 12px;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Animated pulse background */
+    .pulse-ring {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(239,68,68,0.08) 0%, transparent 70%);
+      animation: pulse 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: translateX(-50%) scale(0.95); }
+      50% { opacity: 0.6; transform: translateX(-50%) scale(1.05); }
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fca5a5;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: 30px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+
+    h1 span { color: #ef4444; }
+
+    .subtitle {
+      font-size: 15px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    /* Score card */
+    .score-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .score-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .score-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .score-value {
+      font-size: 52px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .score-value.critical { color: #ef4444; }
+    .score-value.dangerous { color: #f97316; }
+    .score-value.suspicious { color: #f59e0b; }
+    .score-value.safe { color: #22c55e; }
+
+    .classification-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .cls-critical { background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+    .cls-dangerous { background: rgba(249,115,22,0.2); color: #fdba74; border: 1px solid rgba(249,115,22,0.3); }
+    .cls-suspicious { background: rgba(245,158,11,0.2); color: #fde68a; border: 1px solid rgba(245,158,11,0.3); }
+    .cls-safe { background: rgba(34,197,94,0.2); color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+
+    .score-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 14px;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.8s ease;
+    }
+
+    /* Prompt display */
+    .prompt-display {
+      background: rgba(239, 68, 68, 0.06);
+      border: 1px solid rgba(239, 68, 68, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      word-break: break-word;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.6;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    /* Patterns card */
+    .patterns-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .patterns-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pattern-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .pattern-item:last-child { border-bottom: none; }
+
+    .pattern-icon {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      margin-top: 2px;
+    }
+
+    .pattern-icon.role_manipulation { background: rgba(168,85,247,0.2); }
+    .pattern-icon.information_extraction { background: rgba(245,158,11,0.2); }
+    .pattern-icon.jailbreaking { background: rgba(239,68,68,0.2); }
+    .pattern-icon.encoding_tricks { background: rgba(6,182,212,0.2); }
+    .pattern-icon.command_injection { background: rgba(249,115,22,0.2); }
+
+    .pattern-content { flex: 1; }
+
+    .pattern-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pattern-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .pattern-category {
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.5);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .pattern-severity {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .severity-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .severity-bars {
+      display: flex;
+      gap: 2px;
+    }
+
+    .severity-bar {
+      width: 12px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .severity-bar.filled.high { background: #ef4444; }
+    .severity-bar.filled.medium { background: #f59e0b; }
+    .severity-bar.filled.low { background: #facc15; }
+
+    .severity-number {
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .pattern-explanation {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.5;
+    }
+
+    /* Info box */
+    .info-box {
+      background: rgba(6, 182, 212, 0.08);
+      border: 1px solid rgba(6, 182, 212, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+
+    .info-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(6, 182, 212, 0.8);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .info-text {
+      font-size: 12px;
+      color: rgba(6, 182, 212, 0.5);
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn-dismiss {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-dismiss:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-dashboard {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.6);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-dashboard:hover {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #93c5fd;
+    }
+  </style>
+</head>
+<body>
+  <div class="pulse-ring"></div>
+
+  <div class="container">
+    <div class="badge">
+      <span>🛡️</span>
+      PhishGuard — Prompt Guard
+    </div>
+
+    <h1>Prompt <span>Injection</span> Detected</h1>
+    <p class="subtitle" id="summary">
+      A potential prompt injection attack was detected in your input. This could compromise AI system behavior.
+    </p>
+
+    <div class="score-card">
+      <div class="score-header">
+        <span class="score-label">Risk Score</span>
+        <span class="classification-badge" id="classificationBadge">--</span>
+      </div>
+      <span class="score-value" id="scoreValue">--</span>
+      <div class="score-bar">
+        <div class="score-bar-fill" id="scoreBar" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <div class="prompt-display" id="promptDisplay">Loading...</div>
+
+    <div class="patterns-card">
+      <div class="patterns-title">⚡ Matched Injection Patterns</div>
+      <div id="patternsList"></div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-title">ℹ️ Security Advisory</div>
+      <p class="info-text" id="advisoryText">
+        Prompt injection attacks attempt to override AI system instructions. They can lead to data leaks,
+        unauthorized actions, or bypassing safety measures. Always review flagged prompts carefully.
+      </p>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-dismiss" id="dismissBtn">✓ Understood</button>
+      <a href="http://localhost:5173/dashboard/prompt-injection" target="_blank" class="btn btn-dashboard">
+        📊 Open Dashboard
+      </a>
+    </div>
+  </div>
+
+  <script src="prompt_guard_warning.js"></script>
+</body>
+</html>

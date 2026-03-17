@@ -25,6 +25,11 @@
       "matches": ["https://mail.google.com/*"],
       "js": ["gmail_content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["prompt_guard_content.js"],
+      "run_at": "document_idle"
     }
   ],
   "action": {
@@ -42,7 +47,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["warning.html", "deepfake_result.html"],
+      "resources": ["warning.html", "deepfake_result.html", "prompt_guard_warning.html"],
       "matches": ["<all_urls>"]
     }
   ]

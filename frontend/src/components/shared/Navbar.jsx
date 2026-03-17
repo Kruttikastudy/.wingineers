@@ -36,6 +36,12 @@ export default function Navbar() {
         >
           Phishing
         </Link>
+        <Link
+          to="/dashboard/prompt-injection"
+          className="text-sm font-semibold text-white/80 hover:text-white transition-colors tracking-wide"
+        >
+          Prompt Guard
+        </Link>
         <a
           href="#mitigation"
           className="text-sm font-semibold text-white/80 hover:text-white transition-colors tracking-wide"

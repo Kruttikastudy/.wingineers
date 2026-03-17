@@ -7,6 +7,7 @@ import DeepfakeDetection from "./pages/DeepfakeDetection";
 import Dashboard from "./pages/Dashboard";
 import PhishingDashboard from "./pages/PhishingDashboard";
 import XAIDashboard from "./pages/XAIDashboard";
+import PromptInjectionDashboard from "./pages/PromptInjectionDashboard";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/phishing" element={<PhishingDashboard />} />
             <Route path="/dashboard/xai" element={<XAIDashboard />} />
+            <Route path="/dashboard/prompt-injection" element={<PromptInjectionDashboard />} />
           </Routes>
         </Router>
       </AuthProvider>

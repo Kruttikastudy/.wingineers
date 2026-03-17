@@ -5,6 +5,7 @@
 
 const API_BASE = "http://localhost:8000";
 const RISK_THRESHOLD = 40; // Score at which we block
+const PROMPT_INJECTION_THRESHOLD = 25; // Score at which we flag prompt injections
 
 // Cache of recently scanned safe URLs (to avoid re-checking)
 const safeUrlCache = new Map();
@@ -23,6 +24,10 @@ const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500 MB
 // Store for result modal window
 let deepfakeResultWindow = null;
 let pendingDeepfakeResult = null;
+
+// Store for prompt injection result window
+let promptGuardWindow = null;
+let pendingPromptGuardResult = null;
 
 // Extension-internal URLs we should never check
 const SKIP_PATTERNS = [
@@ -108,6 +113,66 @@ async function analyzeEmail(subject, sender, bodyText, links) {
     console.error("Failed to reach email analysis API:", err.message);
     return null;
   }
+}
+
+/**
+ * Analyze prompt for injection patterns via backend API
+ */
+async function analyzePromptForInjection(promptText) {
+  try {
+    const response = await fetch(`${API_BASE}/api/analyze-prompt`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: promptText }),
+    });
+
+    if (!response.ok) {
+      console.error("Prompt injection API error:", response.status);
+      return null;
+    }
+
+    const result = await response.json();
+    console.log("[PhishGuard] Prompt injection analysis:", {
+      is_injection: result.is_injection,
+      risk_score: result.risk_score,
+      classification: result.classification,
+      patterns: result.matched_patterns?.length || 0,
+    });
+    return result;
+  } catch (err) {
+    console.error("Failed to reach prompt injection API:", err.message);
+    return null;
+  }
+}
+
+/**
+ * Open prompt guard warning pop-up window
+ */
+function openPromptGuardWarning(result) {
+  // Close previous window if exists
+  if (promptGuardWindow) {
+    try {
+      chrome.windows.remove(promptGuardWindow.id);
+    } catch (err) {
+      console.log("[PhishGuard] Previous prompt guard window already closed");
+    }
+  }
+
+  // Store result for the warning page to fetch
+  pendingPromptGuardResult = result;
+
+  chrome.windows.create(
+    {
+      url: chrome.runtime.getURL("prompt_guard_warning.html"),
+      type: "popup",
+      width: 680,
+      height: 800,
+      focused: true,
+    },
+    (window) => {
+      promptGuardWindow = window;
+    }
+  );
 }
 
 /**
@@ -633,6 +698,68 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(() => {
         sendResponse(null);
       });
+    return true;
+  }
+
+  if (message.type === "CHECK_PROMPT") {
+    // Analyze prompt text for injection patterns
+    analyzePromptForInjection(message.prompt)
+      .then((result) => {
+        sendResponse(result);
+      })
+      .catch(() => {
+        sendResponse(null);
+      });
+    return true; // async response
+  }
+
+  if (message.type === "PROMPT_INJECTION_DETECTED") {
+    // Content script detected an injection — open warning and send notification
+    const result = message.result;
+
+    // Chrome notification
+    if (result.risk_score >= 55) {
+      chrome.notifications.create({
+        type: "basic",
+        iconUrl: chrome.runtime.getURL("icons/shield-128.png"),
+        title: `🛡️ PROMPT INJECTION (${result.risk_score}/100)`,
+        message: result.summary || "Prompt injection pattern detected in your input!",
+        priority: 2,
+      });
+    }
+
+    // Open detailed warning window
+    openPromptGuardWarning(result);
+
+    // Update badge
+    chrome.action.setBadgeText({ text: result.risk_score.toString() });
+    chrome.action.setBadgeBackgroundColor({ color: "#EF4444" });
+
+    // Clear badge after 10 seconds
+    setTimeout(() => {
+      chrome.action.setBadgeText({ text: "" });
+    }, 10000);
+
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message.type === "OPEN_PROMPT_GUARD_WARNING") {
+    // Content script overlay "View Full Report" button
+    openPromptGuardWarning(message.result);
+    sendResponse({ ok: true });
+    return true;
+  }
+
+  if (message.type === "GET_PROMPT_GUARD_RESULT") {
+    // Warning page requests the pending result
+    if (pendingPromptGuardResult) {
+      const result = pendingPromptGuardResult;
+      pendingPromptGuardResult = null;
+      sendResponse(result);
+    } else {
+      sendResponse(null);
+    }
     return true;
   }
 
