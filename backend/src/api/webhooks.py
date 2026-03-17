@@ -16,6 +16,11 @@ logger = logging.getLogger(__name__)
 
 # ── Per-call accumulator: tracks risk across speech chunks ──
 _call_state: dict[str, dict] = {}
+_live_calls: dict[str, dict] = {}
+
+def get_active_calls():
+    """Returns a list of all currently active call payloads."""
+    return list(_live_calls.values())
 
 
 def _accumulate_analysis(call_sid: str, analysis: dict):
@@ -116,6 +121,7 @@ async def twilio_voice_webhook(request: Request):
                         "all_indicators": sorted(state.get("all_indicators", set())),
                     },
                 }
+                _live_calls[call_sid] = payload
                 event_hub.publish("VOICE_CALL_TRANSCRIPT", payload)
             except Exception as analysis_err:
                 logger.error("Voice transcript analysis failed: %s", analysis_err)
@@ -166,6 +172,7 @@ async def twilio_voice_status_webhook(request: Request):
 
         if call_status in ("completed", "busy", "no-answer", "failed", "canceled"):
             accumulated = _pop_call_state(call_sid)
+            _live_calls.pop(call_sid, None)
             summary = {
                 "call_sid": call_sid,
                 "from": caller,

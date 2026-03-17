@@ -110,6 +110,7 @@ async def sse_events():
     )
 
 from .services.voice_history_manager import voice_history_manager
+from .api.webhooks import get_active_calls
 
 @app.get("/api/voice/history", tags=["Voice"])
 async def get_voice_history():
@@ -119,6 +120,15 @@ async def get_voice_history():
     except Exception as e:
         logger.error(f"Error fetching voice history: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch voice history")
+
+@app.get("/api/voice/live", tags=["Voice"])
+async def get_live_voice_calls():
+    """Get currently active voice calls with their latest transcripts."""
+    try:
+        return get_active_calls()
+    except Exception as e:
+        logger.error(f"Error fetching live calls: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch live calls")
 
 # Routes - Authentication
 from .api import auth

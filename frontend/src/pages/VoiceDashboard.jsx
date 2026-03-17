@@ -81,6 +81,36 @@ export default function VoiceDashboard() {
       console.error("SSE connection error:", err);
     };
 
+    // Fallback polling for environments like Hugging Face Spaces where SSE gets dropped/buffered
+    const pollInterval = setInterval(() => {
+      fetch(`${API_BASE}/api/voice/live`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            const now = Date.now();
+            setLiveCalls((prev) => {
+              const updated = [...prev];
+              data.forEach((callData) => {
+                const existingIdx = updated.findIndex((c) => c.call_sid === callData.call_sid);
+                if (existingIdx >= 0) {
+                  // Only update if text actually changed or it's new
+                  if (updated[existingIdx].text !== callData.text) {
+                    updated[existingIdx] = { ...updated[existingIdx], ...callData, lastSeen: now };
+                  } else {
+                    // Just update timestamp
+                    updated[existingIdx].lastSeen = now;
+                  }
+                } else {
+                  updated.unshift({ ...callData, lastSeen: now });
+                }
+              });
+              return updated.slice(0, 5);
+            });
+          }
+        })
+        .catch((err) => console.error("Poll API error:", err));
+    }, 2000);
+
     const staleInterval = setInterval(() => {
       const now = Date.now();
       setLiveCalls((prev) => {
@@ -91,9 +121,9 @@ export default function VoiceDashboard() {
               handleCallEnd({
                 call_sid: c.call_sid,
                 from: c.from,
-                overall_risk: c.cumulative?.max_risk || c.analysis.risk_score,
+                overall_risk: c.cumulative?.max_risk || c.analysis?.risk_score || 0,
                 all_indicators:
-                  c.cumulative?.all_indicators || c.analysis.reasons,
+                  c.cumulative?.all_indicators || c.analysis?.reasons || [],
                 duration_sec: "---",
                 status: "timed-out",
               });
@@ -106,6 +136,7 @@ export default function VoiceDashboard() {
 
     return () => {
       eventSource.close();
+      clearInterval(pollInterval);
       clearInterval(staleInterval);
     };
   }, []);
