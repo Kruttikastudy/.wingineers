@@ -115,12 +115,12 @@
 
       // Show severity badge
       if (data.severity) {
-        const sevClass = `severity-${data.severity.toLowerCase()}`;
-        severityBadge.innerHTML = `
-          <div class="severity-badge ${sevClass}">
-            Fused Score: ${data.fused_score}/100 — ${data.severity}
-          </div>
-        `;
+        const sevClass = `severity-${escapeHtml(data.severity.toLowerCase())}`;
+        severityBadge.textContent = '';
+        const badge = document.createElement('div');
+        badge.className = `severity-badge ${sevClass}`;
+        badge.textContent = `Fused Score: ${data.fused_score}/100 — ${data.severity}`;
+        severityBadge.appendChild(badge);
       }
 
       // Render token heatmap
@@ -161,9 +161,10 @@
       }
 
     } catch (err) {
-      console.error('[PhishGuard] XAI fetch failed:', err);
+      const errMsg = (err && err.message) ? err.message : 'backend unreachable';
+      console.error('[PhishGuard] XAI fetch failed:', errMsg);
       xaiLoading.innerHTML = `<span style="color: rgba(255,255,255,0.3);">
-        AI explanation unavailable — ${escapeHtml(err.message || 'backend unreachable')}
+        AI explanation unavailable — ${escapeHtml(errMsg)}
       </span>`;
     }
   }

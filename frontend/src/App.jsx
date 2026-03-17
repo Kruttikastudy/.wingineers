@@ -6,8 +6,10 @@ import Login from "./pages/Login";
 import DeepfakeDetection from "./pages/DeepfakeDetection";
 import Dashboard from "./pages/Dashboard";
 import PhishingDashboard from "./pages/PhishingDashboard";
+import VoiceDashboard from "./pages/VoiceDashboard";
 import XAIDashboard from "./pages/XAIDashboard";
 import PromptInjectionDashboard from "./pages/PromptInjectionDashboard";
+import Mitigation from "./pages/Mitigation";
 
 function App() {
   return (
@@ -20,8 +22,10 @@ function App() {
             <Route path="/deepfake" element={<DeepfakeDetection />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/phishing" element={<PhishingDashboard />} />
+            <Route path="/dashboard/voice" element={<VoiceDashboard />} />
             <Route path="/dashboard/xai" element={<XAIDashboard />} />
             <Route path="/dashboard/prompt-injection" element={<PromptInjectionDashboard />} />
+            <Route path="/mitigation" element={<Mitigation />} />
           </Routes>
         </Router>
       </AuthProvider>

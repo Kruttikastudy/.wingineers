@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/shared/Navbar";
-import deepfakeBg from "../assets/deepfake.avif";
 import {
   ArrowLeft,
   UploadCloud,
@@ -102,20 +101,12 @@ export default function DeepfakeDetection() {
   const isVideo = file && file.type.startsWith("video/");
 
   return (
-    <div className="relative h-screen w-full font-sans text-white selection:bg-cyan-500/30 overflow-hidden flex flex-col">
-      {/* Background Image Layer */}
-      <div
-        className="absolute inset-0 bg-cover bg-center"
-        style={{ backgroundImage: `url(${deepfakeBg})` }}
-      >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
-      </div>
-
-      <div className="relative z-20 pt-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white font-sans overflow-x-hidden pt-24 pb-20 flex flex-col">
+      <div className="relative z-20">
         <Navbar />
       </div>
 
-      <div className="relative z-10 max-w-6xl w-full mx-auto px-4 sm:px-6 flex-1 flex flex-col justify-start pt-24 pb-12">
+      <div className="relative z-10 max-w-6xl w-full mx-auto px-4 sm:px-6 flex-1 flex flex-col justify-start pb-12">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="font-display text-4xl lg:text-5xl font-black mb-4 tracking-tight">

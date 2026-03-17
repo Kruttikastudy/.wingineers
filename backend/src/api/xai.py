@@ -3,8 +3,10 @@ XAI API Routes — Explainability, User Profiling, and Feedback
 
 Endpoints:
   POST /api/xai/explain         — SHAP token attribution + fused risk score
+  POST /api/xai/explain-deepfake — Deepfake detection explainability
   GET  /api/xai/user-profile/{user_id} — User vulnerability score & history
   POST /api/xai/feedback        — Submit false-positive / false-negative feedback
+  POST /api/xai/deepfake-feedback — Submit deepfake detection feedback
   GET  /api/xai/feedback/stats  — Global feedback statistics
 """
 
@@ -53,6 +55,35 @@ class FeedbackRequest(BaseModel):
     user_label: str  # "safe" or "phishing"
     user_id: Optional[str] = None
     raw_text: Optional[str] = None
+
+
+class DeepfakeExplainRequest(BaseModel):
+    verdict: str  # "DEEPFAKE", "AUTHENTIC", "INCONCLUSIVE"
+    confidence: float
+    media_url: Optional[str] = None
+    details: Optional[dict] = None
+    user_id: Optional[str] = None
+
+
+class DeepfakeFeature(BaseModel):
+    name: str
+    value: str
+    impact: str  # "high", "medium", "low"
+
+
+class DeepfakeExplainResponse(BaseModel):
+    risk_score: int
+    severity: str
+    cta: str
+    features: List[DeepfakeFeature]
+
+
+class DeepfakeFeedbackRequest(BaseModel):
+    media_url: str
+    original_verdict: str
+    original_confidence: float
+    user_label: str  # "authentic" or "deepfake"
+    user_id: Optional[str] = None
 
 
 # ── Endpoints ──
@@ -203,6 +234,150 @@ async def get_feedback_stats():
     except Exception as e:
         logger.error(f"[XAI] Feedback stats error: {e}")
         raise HTTPException(status_code=500, detail="Failed to compute feedback stats")
+
+
+@router.post("/xai/explain-deepfake", response_model=DeepfakeExplainResponse, tags=["XAI"])
+async def explain_deepfake(request: DeepfakeExplainRequest):
+    """
+    Generate an explainability report for a deepfake detection result.
+
+    Maps detection metadata into severity, CTA, and feature-level explanations.
+    """
+    try:
+        verdict = request.verdict
+        confidence = request.confidence
+        details = request.details or {}
+
+        # Compute risk score (0-100)
+        if verdict == "DEEPFAKE":
+            risk_score = int(min(confidence * 100, 100))
+        elif verdict == "AUTHENTIC":
+            risk_score = int(max((1 - confidence) * 100, 0))
+        else:
+            risk_score = 50
+
+        # Severity mapping
+        if risk_score >= 70:
+            severity = "CRITICAL"
+        elif risk_score >= 50:
+            severity = "HIGH"
+        elif risk_score >= 30:
+            severity = "MODERATE"
+        else:
+            severity = "LOW"
+
+        # CTA recommendation
+        cta_map = {
+            "CRITICAL": "This media is very likely manipulated. Do not share or trust this content without independent verification.",
+            "HIGH": "This media shows strong signs of manipulation. Verify the source before sharing or acting on it.",
+            "MODERATE": "This media has some suspicious characteristics. Consider verifying with the original source.",
+            "LOW": "This media appears genuine. Standard caution is still recommended for any online content.",
+        }
+        cta = cta_map[severity]
+
+        # Extract feature-level explanations from detection details
+        features = []
+
+        model = details.get("model", details.get("method", ""))
+        if model:
+            features.append(DeepfakeFeature(
+                name="Detection Model",
+                value=model.split("/")[-1] if "/" in model else model,
+                impact="high" if "Deep-Fake" in model or "ViT" in model else "medium",
+            ))
+
+        if "average_score" in details:
+            avg = details["average_score"]
+            avg_pct = round(avg * 100)
+            features.append(DeepfakeFeature(
+                name="Average Deepfake Score",
+                value=f"{avg_pct}%",
+                impact="high" if avg > 0.6 else "medium" if avg > 0.3 else "low",
+            ))
+
+        if "score" in details:
+            score = details["score"]
+            score_pct = round(score * 100)
+            features.append(DeepfakeFeature(
+                name="Model Detection Score",
+                value=f"{score_pct}%",
+                impact="high" if score > 0.6 else "medium" if score > 0.3 else "low",
+            ))
+
+        if "faces_detected" in details:
+            n_faces = details["faces_detected"]
+            features.append(DeepfakeFeature(
+                name="Faces Detected",
+                value=str(n_faces),
+                impact="medium",
+            ))
+
+        if "max_score" in details:
+            mx = details["max_score"]
+            features.append(DeepfakeFeature(
+                name="Peak Frame Score",
+                value=f"{round(mx * 100)}%",
+                impact="high" if mx > 0.7 else "medium",
+            ))
+
+        if "frames_analyzed" in details:
+            features.append(DeepfakeFeature(
+                name="Frames Analyzed",
+                value=f"{details['frames_analyzed']}/{details.get('total_frames', '?')}",
+                impact="low",
+            ))
+
+        if "method" in details:
+            method = details["method"]
+            if method == "face_analysis":
+                features.append(DeepfakeFeature(
+                    name="Analysis Method",
+                    value="Heuristic face analysis (blur + frequency)",
+                    impact="medium",
+                ))
+
+        # Add confidence as a feature
+        features.append(DeepfakeFeature(
+            name="Confidence Level",
+            value=f"{round(confidence * 100)}%",
+            impact="high" if confidence > 0.8 else "medium" if confidence > 0.5 else "low",
+        ))
+
+        return DeepfakeExplainResponse(
+            risk_score=risk_score,
+            severity=severity,
+            cta=cta,
+            features=features,
+        )
+
+    except Exception as e:
+        logger.error(f"[XAI] Deepfake explain error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Deepfake XAI analysis failed: {str(e)}")
+
+
+@router.post("/xai/deepfake-feedback", tags=["XAI"])
+async def submit_deepfake_feedback(request: DeepfakeFeedbackRequest):
+    """
+    Submit user feedback on a deepfake detection result.
+    """
+    if request.user_label not in ("authentic", "deepfake"):
+        raise HTTPException(
+            status_code=400,
+            detail="user_label must be 'authentic' or 'deepfake'"
+        )
+
+    try:
+        entry = feedback_store.add_feedback(
+            url=request.media_url,
+            original_verdict=request.original_verdict,
+            original_score=int(request.original_confidence * 100),
+            user_label=request.user_label,
+            user_id=request.user_id,
+        )
+        return {"status": "ok", "feedback_id": entry["id"]}
+    except Exception as e:
+        logger.error(f"[XAI] Deepfake feedback error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to store deepfake feedback")
 
 
 def _score_to_category(score: int) -> str:

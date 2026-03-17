@@ -1,4 +1,5 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Mic } from "lucide-react";
+import { Link } from "react-router-dom";
 import landingImage from "../../assets/landing.png";
 
 export default function LandingHero() {
@@ -30,12 +31,15 @@ export default function LandingHero() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full sm:w-auto">
-          <button className="group w-full sm:w-auto flex justify-center items-center py-4 px-10 rounded-full shadow-[0_0_40px_rgba(45,212,191,0.5)] text-sm font-black text-white bg-teal-500 hover:bg-teal-400 transform transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] uppercase tracking-widest border border-teal-300/30">
+          <Link
+            to="/dashboard"
+            className="group w-full sm:w-auto flex justify-center items-center py-4 px-10 rounded-full shadow-[0_0_40px_rgba(45,212,191,0.5)] text-sm font-black text-white bg-teal-500 hover:bg-teal-400 transform transition-all duration-300 hover:scale-[1.05] active:scale-[0.95] uppercase tracking-widest border border-teal-300/30"
+          >
             <span className="relative z-10 flex items-center">
               Scan Threat
               <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </span>
-          </button>
+          </Link>
 
           <a
             href="#pricing"

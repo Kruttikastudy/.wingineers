@@ -54,23 +54,79 @@ export default function Dashboard() {
         </div>
 
         {/* PhishGuard Protection */}
-        <Link
-          to="/dashboard/phishing"
-          className="block mt-12 bg-blue-500/10 border border-blue-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-blue-500/15 hover:border-blue-500/40 transition-all group"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl">🛡️</span>
-                <h3 className="text-xl font-black text-blue-400">PhishGuard Protection</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+          <Link
+            to="/dashboard/phishing"
+            className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-blue-500/15 hover:border-blue-500/40 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🛡️</span>
+                  <h3 className="text-xl font-black text-blue-400">PhishGuard Core</h3>
+                </div>
+                <p className="text-white/60 font-medium">
+                  URL analysis • Threat monitoring
+                </p>
               </div>
-              <p className="text-white/60 font-medium">
-                Real-time phishing detection • URL analysis • Threat monitoring
-              </p>
+              <span className="text-white/30 group-hover:text-blue-400 text-2xl transition-colors">→</span>
             </div>
-            <span className="text-white/30 group-hover:text-blue-400 text-2xl transition-colors">→</span>
-          </div>
-        </Link>
+          </Link>
+
+           <Link
+            to="/dashboard/voice"
+            className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-red-500/15 hover:border-red-500/40 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🎙️</span>
+                  <h3 className="text-xl font-black text-red-400">Voice Intercept</h3>
+                </div>
+                <p className="text-white/60 font-medium">
+                  Real-time call monitoring • AI Analysis
+                </p>
+              </div>
+              <span className="text-white/30 group-hover:text-red-400 text-2xl transition-colors">→</span>
+            </div>
+          </Link>
+
+          <Link
+            to="/deepfake"
+            className="bg-purple-500/10 border border-purple-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-purple-500/15 hover:border-purple-500/40 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🎭</span>
+                  <h3 className="text-xl font-black text-purple-400">Deepfake Lab</h3>
+                </div>
+                <p className="text-white/60 font-medium">
+                  Media verification • Artifact detection
+                </p>
+              </div>
+              <span className="text-white/30 group-hover:text-purple-400 text-2xl transition-colors">→</span>
+            </div>
+          </Link>
+
+          <Link
+            to="/dashboard/xai"
+            className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-8 backdrop-blur-sm hover:bg-emerald-500/15 hover:border-emerald-500/40 transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">🧠</span>
+                  <h3 className="text-xl font-black text-emerald-400">Neural XAI</h3>
+                </div>
+                <p className="text-white/60 font-medium">
+                  Explainable AI • Security attribution
+                </p>
+              </div>
+              <span className="text-white/30 group-hover:text-emerald-400 text-2xl transition-colors">→</span>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );

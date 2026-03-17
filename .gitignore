@@ -1,4 +1,15 @@
-*\.env
-*\.venv
+# Environment files (credentials)
+.env
+*.env
+**/.env
+
+# Virtual environments
+.venv
+*/.venv
+
+# Test data
 test_dat
-*\__pycache__
+
+# Python cache
+__pycache__/
+**/__pycache__/

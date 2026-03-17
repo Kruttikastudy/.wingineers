@@ -1,0 +1,49 @@
+[
+  {
+    "call_sid": "CAab78f588cba0a9972a19f6380048ad7c",
+    "from": "+917506071608",
+    "overall_risk": 0,
+    "all_indicators": [],
+    "duration_sec": "37",
+    "status": "completed",
+    "timestamp": "2026-03-17T01:32:16.566541Z"
+  },
+  {
+    "call_sid": "CAcca3c406de7a5923e0f5b3c141afb0dd",
+    "from": "+917506071608",
+    "overall_risk": 100,
+    "all_indicators": [
+      "Suspicious payment request",
+      "Sensitive information requested",
+      "Urgency tactics detected"
+    ],
+    "duration_sec": "46",
+    "status": "completed",
+    "timestamp": "2026-03-17T01:30:42.888162Z"
+  },
+  {
+    "call_sid": "CA8f2993dc398d205038ff35d89af8537c",
+    "from": "+917506071608",
+    "overall_risk": 100,
+    "all_indicators": [
+      "Sensitive information requested",
+      "Urgency tactics detected",
+      "Suspicious payment request"
+    ],
+    "duration_sec": "32",
+    "status": "completed",
+    "timestamp": "2026-03-17T01:15:34.281488Z"
+  },
+  {
+    "call_sid": "CA805b5e2ab3a7dffdcdd63ec7e987928c",
+    "from": "+917506071608",
+    "overall_risk": 65,
+    "all_indicators": [
+      "Sensitive information requested",
+      "Urgency tactics detected"
+    ],
+    "duration_sec": "42",
+    "status": "completed",
+    "timestamp": "2026-03-16T23:20:32.952021Z"
+  }
+]

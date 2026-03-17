@@ -27,12 +27,12 @@ export default function LandingNavbar() {
         >
           Explainability
         </a>
-        <a
-          href="#mitigation"
+        <Link
+          to="/mitigation"
           className="text-sm font-semibold text-white/80 hover:text-white transition-colors tracking-wide"
         >
           Mitigation
-        </a>
+        </Link>
         <a
           href="#dashboard"
           className="text-sm font-semibold text-white/80 hover:text-white transition-colors tracking-wide"

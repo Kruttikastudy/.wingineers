@@ -76,7 +76,7 @@ def analyze_url(url_string: str) -> Dict[str, Any]:
             "confidence": 1.0,
             "reasons": ["Invalid or empty URL"],
             "category": "invalid",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
     # Parse URL
@@ -93,7 +93,7 @@ def analyze_url(url_string: str) -> Dict[str, Any]:
             "confidence": 0.9,
             "reasons": ["Malformed URL that cannot be parsed"],
             "category": "malformed",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
     hostname = parsed.hostname.lower() if parsed.hostname else ""
@@ -109,7 +109,7 @@ def analyze_url(url_string: str) -> Dict[str, Any]:
             "confidence": 0.95,
             "reasons": [],
             "category": "trusted",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat() + "Z"
         }
 
     # Check 1: IP address instead of domain
@@ -212,13 +212,13 @@ def analyze_url(url_string: str) -> Dict[str, Any]:
         "confidence": round(confidence, 2),
         "reasons": reasons,
         "category": category,
-        "timestamp": datetime.utcnow().isoformat()
+        "timestamp": datetime.utcnow().isoformat() + "Z"
     }
 
 
 async def check_phishtank(url_string: str, api_key: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
-    Check URL against PhishTank database
+    Check URL against PhishTank database with bounded retries.
 
     Args:
         url_string: URL to check
@@ -227,35 +227,49 @@ async def check_phishtank(url_string: str, api_key: Optional[str] = None) -> Opt
     Returns:
         PhishTank result or None
     """
-    try:
-        import aiohttp
+    import aiohttp
 
-        params = {
-            'url': url_string,
-            'format': 'json'
-        }
-        if api_key:
-            params['app_key'] = api_key
+    params = {
+        'url': url_string,
+        'format': 'json'
+    }
+    if api_key:
+        params['app_key'] = api_key
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                'http://checkurl.staging.phishtank.com/checkurl/',
-                data=params,
-                headers={'User-Agent': 'phishtank/wingineers'},
-                timeout=aiohttp.ClientTimeout(total=5)
-            ) as response:
-                if response.status != 200:
-                    return None
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    'https://checkurl.phishtank.com/checkurl/',
+                    data=params,
+                    headers={'User-Agent': 'phishtank/wingineers'},
+                    timeout=aiohttp.ClientTimeout(total=5),
+                    ssl=True
+                ) as response:
+                    if response.status != 200:
+                        logger.warning(f"PhishTank returned HTTP {response.status} (attempt {attempt + 1}/{max_retries + 1})")
+                        if attempt < max_retries:
+                            await asyncio.sleep(1 * (2 ** attempt))
+                            continue
+                        return None
 
-                data = await response.json()
-                return {
-                    "inDatabase": data.get('results', {}).get('in_database') in [True, 'true'],
-                    "isPhish": data.get('results', {}).get('valid') in [True, 'y'],
-                    "phishDetailUrl": data.get('results', {}).get('phish_detail_page')
-                }
-    except Exception as e:
-        logger.warning(f"PhishTank lookup failed: {e}")
-        return None
+                    data = await response.json()
+                    return {
+                        "inDatabase": data.get('results', {}).get('in_database') in [True, 'true'],
+                        "isPhish": data.get('results', {}).get('valid') in [True, 'y'],
+                        "phishDetailUrl": data.get('results', {}).get('phish_detail_page')
+                    }
+        except asyncio.TimeoutError:
+            logger.warning(f"PhishTank request timed out (attempt {attempt + 1}/{max_retries + 1})")
+        except Exception as e:
+            logger.warning(f"PhishTank lookup failed: {e} (attempt {attempt + 1}/{max_retries + 1})")
+
+        if attempt < max_retries:
+            await asyncio.sleep(1 * (2 ** attempt))
+
+    logger.warning("PhishTank lookup exhausted all retries")
+    return None
 
 
 async def full_analysis(url_string: str, phish_tank_api_key: Optional[str] = None) -> Dict[str, Any]:
@@ -269,6 +283,7 @@ async def full_analysis(url_string: str, phish_tank_api_key: Optional[str] = Non
 
     if phish_tank_result:
         result["phishTank"] = phish_tank_result
+        result["external_checks_failed"] = False
 
         if phish_tank_result["isPhish"]:
             result["safe"] = False
@@ -280,5 +295,14 @@ async def full_analysis(url_string: str, phish_tank_api_key: Optional[str] = Non
             # In database but not confirmed as phish — lower risk slightly
             if result["riskScore"] > 20:
                 result["riskScore"] = max(result["riskScore"] - 10, 0)
+    else:
+        # PhishTank lookup failed — flag degraded analysis
+        result["external_checks_failed"] = True
+        result["reasons"].append(
+            "External threat intelligence (PhishTank) was unavailable — "
+            "result is based on rule-based analysis only"
+        )
+        # Apply confidence penalty: we are less certain without external validation
+        result["confidence"] = round(min(result["confidence"], 0.7), 2)
 
     return result

@@ -7,8 +7,12 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from .config import settings
-from .api import webhooks, phishing, xai, prompt_injection
+from .api import webhooks, phishing, xai, prompt_injection, mitigation
 from .services.deepfake_detection import detector
+from .services.deepfake_reasoning_engine import analyze_with_reasoning
+from .services.event_hub import event_hub
+from fastapi.responses import StreamingResponse
+import asyncio
 
 # Configure logging
 logging.basicConfig(
@@ -26,8 +30,12 @@ app = FastAPI(
 # CORS middleware for Frontend to communicate with Backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
-    allow_credentials=False,
+    allow_origins=[
+        "chrome-extension://*",
+        "http://localhost:5173",
+        "http://localhost:8000",
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -40,6 +48,18 @@ class DeepfakeResponse(BaseModel):
     message: str | None = None
     error: str | None = None
     details: dict | None = None
+    reasoning: str | None = None
+    key_factors: list | None = None
+
+
+@app.on_event("startup")
+async def startup_validate_llm():
+    """Validate Featherless LLM model availability at startup."""
+    try:
+        from .services.featherless_llm import validate_model
+        await validate_model()
+    except Exception as e:
+        logger.error(f"LLM model validation error during startup: {e}")
 
 
 # Routes - Webhooks
@@ -53,6 +73,20 @@ app.include_router(xai.router, prefix="/api", tags=["xai"])
 
 # Routes - Prompt Injection Detection
 app.include_router(prompt_injection.router, prefix="/api", tags=["prompt_injection"])
+
+# Routes - Mitigation Reports
+app.include_router(mitigation.router, prefix="/api", tags=["mitigation"])
+
+from .services.voice_history_manager import voice_history_manager
+
+@app.get("/api/voice/history", tags=["Voice"])
+async def get_voice_history():
+    """Get recent voice call history."""
+    try:
+        return voice_history_manager.get_history()
+    except Exception as e:
+        logger.error(f"Error fetching voice history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch voice history")
 
 
 # Routes - Deepfake Detection
@@ -93,7 +127,10 @@ async def detect_audio_deepfake(file: UploadFile = File(...)):
 
         # Detect deepfake
         logger.info(f"Analyzing audio file: {file.filename}")
-        result = detector.detect_audio_deepfake(temp_file)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None, detector.detect_audio_deepfake, temp_file
+        )
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
@@ -157,7 +194,10 @@ async def detect_video_deepfake(file: UploadFile = File(...)):
 
         # Detect deepfake
         logger.info(f"Analyzing video file: {file.filename}")
-        result = detector.detect_video_deepfake(temp_file)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None, detector.detect_video_deepfake, temp_file
+        )
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
@@ -220,7 +260,10 @@ async def detect_image_deepfake(file: UploadFile = File(...)):
 
         # Detect deepfake
         logger.info(f"Analyzing image file: {file.filename}")
-        result = detector.detect_image_deepfake(temp_file)
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(
+            None, detector.detect_image_deepfake, temp_file
+        )
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
@@ -272,12 +315,19 @@ async def detect_deepfake(file: UploadFile = File(...)):
         file_ext = Path(file.filename).suffix.lower()
         logger.info(f"Detecting type for: {file.filename} ({file_ext})")
 
+        loop = asyncio.get_event_loop()
         if file_ext in [".mp3", ".wav", ".ogg", ".m4a", ".flac"]:
-            result = detector.detect_audio_deepfake(temp_file)
+            result = await loop.run_in_executor(
+                None, detector.detect_audio_deepfake, temp_file
+            )
         elif file_ext in [".mp4", ".avi", ".mkv", ".mov", ".webm"]:
-            result = detector.detect_video_deepfake(temp_file)
+            result = await loop.run_in_executor(
+                None, detector.detect_video_deepfake, temp_file
+            )
         elif file_ext in [".jpg", ".jpeg", ".png", ".webp", ".avif"]:
-            result = detector.detect_image_deepfake(temp_file)
+            result = await loop.run_in_executor(
+                None, detector.detect_image_deepfake, temp_file
+            )
         else:
             return DeepfakeResponse(
                 is_deepfake=None,
@@ -285,16 +335,33 @@ async def detect_deepfake(file: UploadFile = File(...)):
                 error=f"Unsupported file format: {file_ext}",
             )
 
+        # Determine media type for reasoning engine
+        audio_exts = [".mp3", ".wav", ".ogg", ".m4a", ".flac"]
+        video_exts = [".mp4", ".avi", ".mkv", ".mov", ".webm"]
+        image_exts = [".jpg", ".jpeg", ".png", ".webp", ".avif"]
+        if file_ext in audio_exts:
+            media_type = "audio"
+        elif file_ext in video_exts:
+            media_type = "video"
+        elif file_ext in image_exts:
+            media_type = "image"
+        else:
+            media_type = "unknown"
+
+        # Run LLM reasoning on top of ML detection
+        result = await analyze_with_reasoning(result, media_type)
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
             confidence=result.get("confidence", 0.0),
             message=result.get("message"),
             error=result.get("error"),
+            reasoning=result.get("reasoning"),
+            key_factors=result.get("key_factors"),
             details={
                 k: v
                 for k, v in result.items()
-                if k not in ["is_deepfake", "confidence", "message", "error"]
+                if k not in ["is_deepfake", "confidence", "message", "error", "reasoning", "key_factors"]
             },
         )
 
@@ -321,6 +388,17 @@ async def health_check():
         "environment": settings.API_HOST,
         "detector_initialized": detector is not None,
     }
+
+
+@app.get("/api/events", tags=["Real-time"])
+async def stream_events():
+    """
+    Server-Sent Events (SSE) endpoint to stream real-time threat alerts.
+    """
+    return StreamingResponse(
+        event_hub.subscribe(),
+        media_type="text/event-stream"
+    )
 
 
 # API information endpoint
