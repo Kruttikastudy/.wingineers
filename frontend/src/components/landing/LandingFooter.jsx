@@ -1,4 +1,5 @@
 import { Compass, Twitter, Github, Linkedin } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function LandingFooter() {
   const currentYear = new Date().getFullYear();
@@ -41,12 +42,12 @@ export default function LandingFooter() {
             >
               Explainability
             </a>
-            <a
-              href="#mitigation"
+            <Link
+              to="/mitigation"
               className="text-sm font-medium text-white/60 hover:text-white transition-colors"
             >
               Mitigation
-            </a>
+            </Link>
           </div>
           <div className="flex flex-col space-y-4">
             <h4 className="font-mono text-xs font-black text-cyan-400 uppercase tracking-widest mb-2">

@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import PhishingDashboard from "./pages/PhishingDashboard";
 import VoiceDashboard from "./pages/VoiceDashboard";
 import XAIDashboard from "./pages/XAIDashboard";
+import Mitigation from "./pages/Mitigation";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
             <Route path="/dashboard/phishing" element={<PhishingDashboard />} />
             <Route path="/dashboard/voice" element={<VoiceDashboard />} />
             <Route path="/dashboard/xai" element={<XAIDashboard />} />
+            <Route path="/mitigation" element={<Mitigation />} />
           </Routes>
         </Router>
       </AuthProvider>

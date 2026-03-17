@@ -1,5 +1,41 @@
 [
   {
+    "id": 24,
+    "url": "file:///C:/Users/Akshat/Downloads/LUMINA_Mitigation_Report_2026-03-17%20(1).pdf",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-17T01:19:02.438828Z",
+    "phishTank": {
+      "inDatabase": false,
+      "isPhish": false,
+      "phishDetailUrl": null
+    },
+    "external_checks_failed": false
+  },
+  {
+    "id": 23,
+    "url": "file:///C:/Users/Akshat/Downloads/LUMINA_Mitigation_Report_2026-03-17.pdf",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-17T00:56:12.150334Z",
+    "phishTank": {
+      "inDatabase": false,
+      "isPhish": false,
+      "phishDetailUrl": null
+    },
+    "external_checks_failed": false
+  },
+  {
     "id": 12,
     "url": "https://accounts.google.com/CheckCookie?continue=https://accounts.google.com/signin/oauth/consent?authuser%3D0%26part%3DAJi8hAN7dS2VW_vXX7-FpWGHBzb97E18al-YUgC0qw4dI9MLgPDaGaaVLTByTsCF-J2lLxPi5VI7Yj5AbqwzQgkktMdCs2uOd7Pmt58TRR53Y1bHun5uszHkDUx157EALcQcW9jn28IgRBbuV-IgnlgQ8KfHWOkVjgKGY2CTjlZE-_BM0ONdhpwif2ISRAMVlp0IrqR4oKsQkatfalHSzZmxPsYYQN591X5w5U15rjO879Ck4jj4tMi6jlavPwu0GXQO2--LAm_UW6cNK6cY2olh9Vrl3YAlbHL0_cwVWlhr8XwlAd-E_luZznOrl6hHrRPhRHT4gE-YLuVnOTdV4NDl8yOMltBi7Cd4kTETSgYOjgX2CPljfSTbCkcAgQu3DH4l_7Wzrxx5yOBOhiitO-RVkNhg-uZZ1qGRLR0Vg98Dia2xj8A5TOHdzerMGRT81yQCtWJwDfqP5mn9iPtDfe5nJUwsFs-NLA%26flowName%3DGeneralOAuthFlow%26as%3DS-2060528133:1773702951924512%26client_id%3D324957144254-knfqnf3njmsfhbjb0qpokckcmsnuhalu.apps.googleusercontent.com%26requestPath%3D/signin/oauth/consent%26pli%3D1%26rapt%3DAEjHL4OiQQrnuF5tQ9h2HqnwfzqOu9b_pIP8mhq_rbvsZydRplmrffGRk1IGsF1r393u7Sv7Smn6Aaj-vAwfpFptBA8_BUcV9l-6h1mg-qliUbUdn0Z64vw&rart=ANgoxceeKem0DbfGOHhn0it_hKUVbds0mc1kTVH9NsETXHativ3WrL4A-LJOiQDJ5kyiAESOEQ0STVsg5YGVUogkrxKp7joPMCToLZtUR4kR9qRse-qVM2s&flowName=GlifWebSignIn&ifkv=ASfE1-rodqiZwXEIR6yePeHQOPwO6P3zCukLkcDa5mL6kyyQLO8JcJYqKEzV8d-1mg2vVX1PsWVl&chtml=LoginDoneHtml&gidl=EgIIAA&authuser=0",
     "safe": false,

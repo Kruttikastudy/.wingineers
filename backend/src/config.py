@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: str = "your_twilio_auth_token_here"
     TWILIO_ACCOUNT_SID: str = "your_twilio_account_sid_here"
     TWILIO_PHONE_NUMBER: str = "your_twilio_phone_number_here"
+    TWILIO_WHATSAPP_NUMBER: str | None = None
+    ALERT_RECIPIENT_NUMBER: str | None = None
     TWILIO_VALIDATE_SIGNATURES: bool = True
 
     # PhishTank Settings

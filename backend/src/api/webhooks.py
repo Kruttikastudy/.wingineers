@@ -10,6 +10,7 @@ from ..services.ingest import handle_incoming_message
 from ..services.voice_analyzer import analyze_transcript
 from ..services.event_hub import event_hub
 from ..services.voice_history_manager import voice_history_manager
+from ..services.twilio_client import send_whatsapp_alert
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -86,7 +87,8 @@ async def twilio_voice_webhook(request: Request):
         call_state[call_sid] = {
             "reasons": set(),
             "max_risk": 0,
-            "from": form_data.get('From', 'unknown')
+            "from": form_data.get('From', 'unknown'),
+            "alert_sent": False
         }
     
     gather = Gather(
@@ -130,6 +132,19 @@ async def handle_voice_speech(request: Request):
             
             cumulative_risk = state["max_risk"]
             cumulative_indicators = list(state["reasons"])
+            
+            # Send WhatsApp Alert if risk is high (>60%) and alert hasn't been sent yet
+            if cumulative_risk > 0.6 and not state.get("alert_sent"):
+                # Run the alert in a background task so it doesn't block the webhook response
+                asyncio.create_task(
+                    asyncio.to_thread(
+                        send_whatsapp_alert, 
+                        cumulative_risk, 
+                        call_sid, 
+                        cumulative_indicators
+                    )
+                )
+                state["alert_sent"] = True
         
         # Publish event for frontend with cumulative context
         event_hub.publish("VOICE_CALL_TRANSCRIPT", {
