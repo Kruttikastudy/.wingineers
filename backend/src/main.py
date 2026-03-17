@@ -52,6 +52,16 @@ class DeepfakeResponse(BaseModel):
     key_factors: list | None = None
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Catch-all: return 500 JSON instead of letting the server crash."""
+    logger.error("Unhandled exception on %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
+
 @app.on_event("startup")
 async def startup_validate_llm():
     """Validate Featherless LLM model availability at startup."""
@@ -60,6 +70,16 @@ async def startup_validate_llm():
         await validate_model()
     except Exception as e:
         logger.error(f"LLM model validation error during startup: {e}")
+
+
+@app.on_event("startup")
+async def startup_log_routes():
+    """Log all registered routes for debugging webhook issues."""
+    for route in app.routes:
+        methods = getattr(route, "methods", None)
+        path = getattr(route, "path", str(route))
+        if methods:
+            logger.info("Registered route: %s %s", methods, path)
 
 
 # Routes - Webhooks
@@ -76,6 +96,20 @@ app.include_router(prompt_injection.router, prefix="/api", tags=["prompt_injecti
 
 # Routes - Mitigation Reports
 app.include_router(mitigation.router, prefix="/api", tags=["mitigation"])
+
+
+# Routes - SSE Event Stream
+@app.get("/api/events", tags=["Events"])
+async def sse_events():
+    """Server-Sent Events stream for real-time voice call updates."""
+    return StreamingResponse(
+        event_hub.subscribe(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 from .services.voice_history_manager import voice_history_manager
 
@@ -147,7 +181,7 @@ async def detect_audio_deepfake(file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Error processing audio: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error during detection")
 
     finally:
         # Clean up temporary file
@@ -211,7 +245,7 @@ async def detect_video_deepfake(file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Error processing video: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error during detection")
 
     finally:
         # Clean up temporary file
@@ -274,7 +308,7 @@ async def detect_image_deepfake(file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Error processing image: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error during detection")
 
     finally:
         # Clean up temporary file
@@ -338,7 +372,7 @@ async def detect_deepfake(file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Error processing file: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error during detection")
 
     finally:
         # Clean up temporary file

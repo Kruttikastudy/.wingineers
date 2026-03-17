@@ -7,7 +7,6 @@ using HuggingFace models for comprehensive phishing detection.
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from transformers import pipeline
 import asyncio
 
 logger = logging.getLogger(__name__)
@@ -37,13 +36,16 @@ class EmailAnalyzer:
     """
 
     def __init__(self):
-        """Initialize HuggingFace models at startup"""
+        """Initialize analyzer state; models are loaded lazily on first use."""
         self.phishing_model = None
         self.url_classifier = None
-        self._load_models()
+        self._models_load_attempted = False
+        self._model_lock = asyncio.Lock()
 
     def _load_models(self):
         """Load pretrained HuggingFace models"""
+        from transformers import pipeline
+
         try:
             # DistilBERT-based phishing detection model (intent/sentiment analysis)
             self.phishing_model = pipeline(
@@ -65,6 +67,17 @@ class EmailAnalyzer:
             logger.info("✓ URL classifier model loaded successfully")
         except Exception as e:
             logger.warning(f"Failed to load URL classifier: {e}")
+
+    async def _ensure_models_loaded(self):
+        """Load models exactly once, off the event loop, when first needed."""
+        if self._models_load_attempted:
+            return
+
+        async with self._model_lock:
+            if self._models_load_attempted:
+                return
+            await asyncio.to_thread(self._load_models)
+            self._models_load_attempted = True
 
     async def analyze_email(
         self,
@@ -169,6 +182,9 @@ class EmailAnalyzer:
         reasons = []
         base_score = 0
         critical = False
+
+        # Load ML models lazily so API startup does not block on large dependencies.
+        await self._ensure_models_loaded()
 
         # Rule 1: Detect urgency keywords (common phishing tactics)
         found_urgency = []

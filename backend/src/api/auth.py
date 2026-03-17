@@ -109,7 +109,7 @@ async def google_auth(request: GoogleAuthRequest):
         logger.error(f"❌ Google auth failed: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Google authentication failed: {str(e)}"
+            detail="Google authentication failed"
         )
 
 
@@ -163,7 +163,7 @@ async def manual_login(request: ManualLoginRequest):
         logger.error(f"❌ Manual login failed: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Login failed: {str(e)}"
+            detail="Login failed"
         )
 
 
@@ -221,7 +221,7 @@ async def upgrade_subscription(request: UpgradeSubscriptionRequest):
         logger.error(f"❌ Subscription upgrade failed: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Subscription upgrade failed: {str(e)}"
+            detail="Subscription upgrade failed"
         )
 
 

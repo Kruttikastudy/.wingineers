@@ -199,7 +199,7 @@ async def explain_text(request: ExplainRequest):
 
     except Exception as e:
         logger.error(f"[XAI] Explain error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"XAI analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="XAI analysis failed")
 
 
 @router.get("/xai/user-profile/{user_id}", tags=["XAI"])
@@ -368,7 +368,7 @@ async def explain_deepfake(request: DeepfakeExplainRequest):
 
     except Exception as e:
         logger.error(f"[XAI] Deepfake explain error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Deepfake XAI analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Deepfake XAI analysis failed")
 
 
 @router.post("/xai/deepfake-feedback", tags=["XAI"])
