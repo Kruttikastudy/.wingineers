@@ -1,5 +1,41 @@
 [
   {
+    "id": 9,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-17T06:02:53.247953"
+  },
+  {
+    "id": 8,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-17T06:01:05.841332"
+  },
+  {
+    "id": 7,
+    "url": "http://httpforever.com/",
+    "safe": false,
+    "riskScore": 40,
+    "confidence": 0.42,
+    "reasons": [
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "medium_risk",
+    "timestamp": "2026-03-17T05:59:31.848587"
+  },
+  {
     "id": 6,
     "url": "http://secure-login-update.tk/",
     "safe": false,
