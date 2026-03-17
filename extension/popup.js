@@ -61,10 +61,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (response.ok) {
       const data = await response.json();
       const s = data.stats;
-      document.getElementById("totalThreats").textContent = s.total || 0;
-      document.getElementById("todayThreats").textContent = s.today || 0;
-      document.getElementById("highRisk").textContent = s.highRisk || 0;
-      document.getElementById("mediumRisk").textContent = s.mediumRisk || 0;
+      if (s) {
+        document.getElementById("totalThreats").textContent = s.total || 0;
+        document.getElementById("todayThreats").textContent = s.today || 0;
+        document.getElementById("highRisk").textContent = s.highRisk || 0;
+        document.getElementById("mediumRisk").textContent = s.mediumRisk || 0;
+      }
     }
   } catch {
     // Stats unavailable

@@ -47,6 +47,7 @@ class PhishingResponse(BaseModel):
     timestamp: str
     id: int | None = None
     phishTank: dict | None = None
+    external_checks_failed: bool | None = None
 
 
 @router.post("/analyze-url", response_model=PhishingResponse, tags=["Phishing"])

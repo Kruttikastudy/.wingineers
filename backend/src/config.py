@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     LOAD_DEEPFAKE_MODELS: bool = True
     LOG_LEVEL: str = "INFO"
 
+    # Featherless.ai LLM Settings
+    FEATHERLESS_API_KEY: str = ""
+    FEATHERLESS_MODEL: str = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+
     # Twilio Settings
     TWILIO_AUTH_TOKEN: str = "your_twilio_auth_token_here"
     TWILIO_ACCOUNT_SID: str = "your_twilio_account_sid_here"

@@ -241,6 +241,8 @@ async function downloadAndAnalyzeMedia(mediaUrl, mediaType) {
         is_deepfake: analysisData.is_deepfake,
         confidence: analysisData.confidence,
         verdict,
+        reasoning: analysisData.reasoning || null,
+        key_factors: analysisData.key_factors || null,
         details: analysisData.details || {},
       },
     };
@@ -464,7 +466,20 @@ function openDeepfakeResultModal(mediaUrl, mediaType) {
       analyzeMediaForDeepfake(mediaUrl, mediaType).then((result) => {
         pendingDeepfakeResult = result;
 
-        // Notify all extension pages (including our result window)
+        // Send result to the popup window's tab directly
+        // chrome.runtime.sendMessage from service worker doesn't reliably
+        // reach extension popup pages in MV3, so we target the tab instead.
+        if (deepfakeResultWindow && deepfakeResultWindow.tabs && deepfakeResultWindow.tabs.length > 0) {
+          const tabId = deepfakeResultWindow.tabs[0].id;
+          chrome.tabs.sendMessage(tabId, {
+            type: "DEEPFAKE_ANALYSIS_READY",
+            result,
+          }).catch(() => {
+            // Tab may not be ready yet — result will be fetched on demand via GET_DEEPFAKE_ANALYSIS_RESULT
+          });
+        }
+
+        // Also try runtime.sendMessage as a fallback
         chrome.runtime
           .sendMessage({
             type: "DEEPFAKE_ANALYSIS_READY",
@@ -637,10 +652,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "GET_DEEPFAKE_ANALYSIS_RESULT") {
     // Return pending result from context menu analysis
+    // Don't clear — the popup may re-request if messages were missed
     if (pendingDeepfakeResult) {
-      const result = pendingDeepfakeResult;
-      pendingDeepfakeResult = null; // Clear after sending
-      sendResponse(result);
+      sendResponse(pendingDeepfakeResult);
     } else {
       sendResponse(null);
     }

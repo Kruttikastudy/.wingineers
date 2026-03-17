@@ -29,9 +29,12 @@
 
     const url = anchor.href;
 
-    // Skip same-page anchors and javascript: links
-    if (url.startsWith('#') || url.startsWith('javascript:') ||
-        url.startsWith('mailto:') || url.startsWith('tel:')) {
+    // Skip same-page anchors and non-http links
+    // Note: anchor.href (DOM property) returns fully resolved URLs,
+    // so we use getAttribute to check the original href value
+    const rawHref = anchor.getAttribute('href') || '';
+    if (rawHref.startsWith('#') || rawHref.startsWith('javascript:') ||
+        rawHref.startsWith('mailto:') || rawHref.startsWith('tel:')) {
       return;
     }
 
