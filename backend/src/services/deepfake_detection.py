@@ -26,11 +26,6 @@ class DeepfakeDetector:
 
     def _load_models(self):
         """Load deepfake detection models."""
-        if os.environ.get("LOAD_DEEPFAKE_MODELS", "false").lower() != "true":
-            logger.info("Skipping local deepfake models to dramatically speed up startup. To enable, set LOAD_DEEPFAKE_MODELS=true. For production, consider Serverless AI Hosting like Featherless.ai!")
-            # The fallback methods in the classes will be used instead.
-            return
-
         try:
             # Load audio deepfake detection model
             logger.info("Loading audio deepfake detection model...")
@@ -182,51 +177,12 @@ class DeepfakeDetector:
             is_deepfake = bool(anomaly_score > threshold)
             confidence = min(anomaly_score / 2.0, 1.0)
 
-            # Enhanced audio features for richer analysis
-            audio_features = {}
-            try:
-                # MFCC — captures voice timbre (deepfakes often have unnatural timbre)
-                mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
-                mfcc_mean = np.mean(mfcc, axis=1)
-                mfcc_std = np.std(mfcc, axis=1)
-                audio_features["mfcc_variance"] = float(np.mean(mfcc_std))
-
-                # Spectral contrast — captures harmonic vs. noise content
-                contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
-                audio_features["spectral_contrast_mean"] = float(np.mean(contrast))
-                audio_features["spectral_contrast_std"] = float(np.std(contrast))
-
-                # Chroma — captures pitch class distribution
-                chroma = librosa.feature.chroma_stft(y=audio, sr=sr)
-                audio_features["chroma_std"] = float(np.std(chroma))
-
-                # RMS Energy — captures volume dynamics
-                rms = librosa.feature.rms(y=audio)
-                audio_features["rms_std"] = float(np.std(rms))
-                audio_features["rms_mean"] = float(np.mean(rms))
-
-                # Use multi-feature anomaly score for better detection
-                feature_scores = [
-                    spectral_anomaly,
-                    zcr_anomaly,
-                    audio_features["mfcc_variance"] / 50.0,  # normalize
-                    audio_features["spectral_contrast_std"] / 20.0,  # normalize
-                ]
-                enhanced_anomaly = np.mean(feature_scores)
-                is_deepfake = bool(enhanced_anomaly > 0.4)
-                confidence = min(enhanced_anomaly, 1.0)
-                anomaly_score = float(enhanced_anomaly)
-            except Exception as feat_err:
-                logger.warning(f"Enhanced audio feature extraction partial failure: {feat_err}")
-
             return {
                 "is_deepfake": is_deepfake,
-                "confidence": float(min(confidence, 0.6)),
-                "method": "spectral_analysis_enhanced",
+                "confidence": float(confidence),
+                "method": "spectral_analysis_fallback",
                 "anomaly_score": float(anomaly_score),
-                "audio_features": audio_features,
-                "low_trust": True,
-                "message": "Audio deepfake detection completed (heuristic fallback — model unavailable, treat as inconclusive)",
+                "message": "Audio deepfake detection completed (fallback)",
             }
 
         except Exception as e:
@@ -237,7 +193,7 @@ class DeepfakeDetector:
                 "error": str(e),
             }
 
-    def detect_video_deepfake(self, video_path: str, sample_frames: int = 40) -> Dict[str, Any]:
+    def detect_video_deepfake(self, video_path: str, sample_frames: int = 10) -> Dict[str, Any]:
         """
         Detect deepfake in video file using HuggingFace model on frames.
 
@@ -289,38 +245,14 @@ class DeepfakeDetector:
                 if use_model:
                     # Use HuggingFace model for frame classification
                     try:
-                        self.set_current_frame(frame)
-                        faces = self._detect_faces(frame)
-                        
-                        if len(faces) > 0:
-                            # Process only the largest face or all faces
-                            for face in faces:
-                                x, y, w, h = face
-                                
-                                # Add 20% margin around the face for context
-                                margin_x = int(w * 0.2)
-                                margin_y = int(h * 0.2)
-                                
-                                x1 = max(0, x - margin_x)
-                                y1 = max(0, y - margin_y)
-                                x2 = min(frame.shape[1], x + w + margin_x)
-                                y2 = min(frame.shape[0], y + h + margin_y)
-                                
-                                face_img = frame[y1:y2, x1:x2]
-                                
-                                if face_img.size > 0:
-                                    score = self._classify_frame_with_model(face_img)
-                                    deepfake_scores.append(score)
-                                    analyzed_frames += 1
-                        else:
-                            # No face detected in this frame. Skip it.
-                            pass
+                        score = self._classify_frame_with_model(frame)
+                        deepfake_scores.append(score)
+                        analyzed_frames += 1
                     except Exception as e:
                         logger.warning(f"Model inference failed on frame: {e}")
                         use_model = False  # Fall back to face analysis
                 else:
                     # Fallback: Detect and analyze faces
-                    self.set_current_frame(frame)
                     faces = self._detect_faces(frame)
                     if len(faces) > 0:
                         for face in faces:
@@ -346,30 +278,17 @@ class DeepfakeDetector:
             threshold = 0.5
             is_deepfake = bool(avg_score > threshold)
 
-            # Calibrated confidence: directional instead of always ≥0.5
-            # If deepfake: confidence reflects how sure we are it's fake
-            # If authentic: confidence reflects how sure we are it's real
-            if is_deepfake:
-                confidence = float(avg_score)  # e.g. 0.7 = "70% sure it's fake"
-            else:
-                confidence = float(1.0 - avg_score)  # e.g. avg=0.2 → 0.8 = "80% sure it's real"
-
-            # Boost confidence when std is low (consistent signal = higher certainty)
-            if std_score < 0.1 and len(deepfake_scores) >= 10:
-                confidence = min(confidence + 0.1, 1.0)
-
             model_name = "prithivMLmods/Deep-Fake-Detector-v2-Model" if use_model else "face_analysis"
 
             return {
                 "is_deepfake": is_deepfake,
-                "confidence": float(confidence),
+                "confidence": float(max(avg_score, 1 - avg_score)),
                 "average_score": float(avg_score),
                 "max_score": float(max_score),
                 "std_score": float(std_score),
                 "frames_analyzed": int(analyzed_frames),
                 "total_frames": int(frame_count),
                 "duration_seconds": float(frame_count / fps if fps > 0 else 0),
-                "frame_scores": [float(s) for s in deepfake_scores],
                 "model": model_name,
                 "message": "Video deepfake detection completed",
             }
@@ -414,63 +333,17 @@ class DeepfakeDetector:
             # Use HuggingFace model if available
             if self.video_model is not None:
                 try:
-                    self.set_current_frame(frame)
-                    faces = self._detect_faces(frame)
-                    
-                    scores = []
-                    if len(faces) > 0:
-                        for face in faces:
-                            x, y, w, h = face
-                            
-                            # Add 20% margin around the face
-                            margin_x = int(w * 0.2)
-                            margin_y = int(h * 0.2)
-                            
-                            x1 = max(0, x - margin_x)
-                            y1 = max(0, y - margin_y)
-                            x2 = min(frame.shape[1], x + w + margin_x)
-                            y2 = min(frame.shape[0], y + h + margin_y)
-                            
-                            face_img = frame[y1:y2, x1:x2]
-                            
-                            if face_img.size > 0:
-                                scores.append(self._classify_frame_with_model(face_img))
-                                
-                    if scores:
-                        score = np.mean(scores)
-                        is_deepfake = bool(score > 0.5)
-                        # Calibrated confidence: directional
-                        if is_deepfake:
-                            confidence = float(score)
-                        else:
-                            confidence = float(1.0 - score)
+                    score = self._classify_frame_with_model(frame)
+                    is_deepfake = bool(score > 0.5)
+                    confidence = float(max(score, 1 - score))
 
-                        return {
-                            "is_deepfake": is_deepfake,
-                            "confidence": confidence,
-                            "score": score,
-                            "model": self.video_model.get("model_name", "prithivMLmods/Deep-Fake-Detector-v2-Model"),
-                            "message": "Image deepfake detection completed",
-                        }
-                    else:
-                        # Fallback to full image if no faces found but we still want to try model
-                        score = self._classify_frame_with_model(frame)
-                        is_deepfake = bool(score > 0.5)
-                        
-                        # Lower confidence since it's a full frame and models expect faces
-                        if is_deepfake:
-                            confidence = float(score) * 0.6
-                        else:
-                            confidence = float(1.0 - score) * 0.6
-                            
-                        return {
-                            "is_deepfake": is_deepfake,
-                            "confidence": confidence,
-                            "score": score,
-                            "model": self.video_model.get("model_name", "prithivMLmods/Deep-Fake-Detector-v2-Model"),
-                            "message": "Image deepfake detection completed (full frame fallback)",
-                            "low_trust": True
-                        }
+                    return {
+                        "is_deepfake": is_deepfake,
+                        "confidence": confidence,
+                        "score": score,
+                        "model": self.video_model.get("model_name", "prithivMLmods/Deep-Fake-Detector-v2-Model"),
+                        "message": "Image deepfake detection completed",
+                    }
                 except Exception as e:
                     logger.warning(f"Model inference failed on image: {e}")
 
@@ -481,11 +354,7 @@ class DeepfakeDetector:
                 scores = [self._analyze_face(face) for face in faces]
                 avg_score = np.mean(scores)
                 is_deepfake = bool(avg_score > 0.5)
-                # Calibrated confidence: directional
-                if is_deepfake:
-                    confidence = float(avg_score)
-                else:
-                    confidence = float(1.0 - avg_score)
+                confidence = float(max(avg_score, 1 - avg_score))
 
                 return {
                     "is_deepfake": is_deepfake,
@@ -587,7 +456,7 @@ class DeepfakeDetector:
             frequency_score = min(frequency_score / 10, 1.0)
 
             # Combined score
-            combined_score = blur_score * 0.6 + frequency_score * 0.4
+            combined_score = (blur_score * 0.6 + frequency_score * 0.4) / 2
             return float(combined_score)
 
         except Exception as e:

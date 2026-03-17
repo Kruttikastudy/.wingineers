@@ -149,7 +149,7 @@ class EmailAnalyzer:
             "confidence": round(confidence, 2),
             "reasons": reasons[:8],  # Cap at 8 reasons for clarity
             "category": category,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.utcnow().isoformat(),
             "analysis": {
                 "sentiment_score": component_scores["sentiment"],
                 "url_score": component_scores["url_worst"],

@@ -3,7 +3,6 @@ Phishing Detection API Routes
 """
 
 import logging
-from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from ..services.phishing_analyzer import full_analysis
@@ -48,7 +47,6 @@ class PhishingResponse(BaseModel):
     timestamp: str
     id: int | None = None
     phishTank: dict | None = None
-    external_checks_failed: bool | None = None
 
 
 @router.post("/analyze-url", response_model=PhishingResponse, tags=["Phishing"])
@@ -106,10 +104,10 @@ async def analyze_email(request: AnalyzeEmailRequest):
 
 @router.get("/threats", tags=["Phishing"])
 async def get_threats(
-    limit: int = 50,
-    offset: int = 0,
-    category: Optional[str] = None,
-    search: Optional[str] = None
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    category: str = Query(None),
+    search: str = Query(None)
 ):
     """
     Get all stored threats with filtering, pagination, and stats.
@@ -128,12 +126,7 @@ async def get_threats(
             search=search
         )
     except Exception as e:
-        import traceback
-        tb = traceback.format_exc()
-        logger.error(f"Threats fetch error: {e}\n{tb}")
-        # Write to file for debugging
-        with open("error_log.txt", "w") as f:
-            f.write(f"Error: {e}\n\nTraceback:\n{tb}\n\nParams: limit={limit} offset={offset} category={category} search={search}")
+        logger.error(f"Threats fetch error: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch threats")
 
 

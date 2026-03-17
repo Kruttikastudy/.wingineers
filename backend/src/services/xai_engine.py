@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 # Cache for recent SHAP computations (keyed by text hash)
 _shap_cache: Dict[int, Dict[str, Any]] = {}
 _CACHE_MAX = 100
-_SHAP_TIMEOUT = 3.0  # seconds
+_SHAP_TIMEOUT = 15.0  # seconds
 
 
 class XAIEngine:

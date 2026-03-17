@@ -150,6 +150,22 @@ async def explain_text(request: ExplainRequest):
             shap_values=xai_result.get("shap_values", []),
             user_history_boost=user_boost
         )
+        # fuse_scores() returns key "fused_score", not "score"
+        fused_score_val = int(round(fused["fused_score"]))
+
+        # Derive severity and CTA from fused score
+        if fused_score_val >= 80:
+            severity = "CRITICAL"
+            cta = "This URL is very likely malicious. Do not visit or share it."
+        elif fused_score_val >= 60:
+            severity = "HIGH"
+            cta = "This URL shows strong signs of phishing. Verify before proceeding."
+        elif fused_score_val >= 40:
+            severity = "MODERATE"
+            cta = "This URL has some suspicious characteristics. Use caution."
+        else:
+            severity = "LOW"
+            cta = "This URL appears safe. Standard caution is still recommended."
 
         # 6. Record scan in user profile
         if request.user_id:
@@ -163,8 +179,8 @@ async def explain_text(request: ExplainRequest):
             user_profile_manager.record_scan(
                 user_id=request.user_id,
                 domain=domain,
-                risk_score=fused["score"],
-                category=_score_to_category(fused["score"])
+                risk_score=fused_score_val,
+                category=_score_to_category(fused_score_val)
             )
 
         return ExplainResponse(
@@ -173,9 +189,9 @@ async def explain_text(request: ExplainRequest):
             base_value=xai_result.get("base_value", 0.0),
             model_score=round(model_score, 2),
             model_label=model_label,
-            fused_score=fused["score"],
-            severity=fused["severity"],
-            cta=fused["cta"],
+            fused_score=fused_score_val,
+            severity=severity,
+            cta=cta,
             component_scores=fused["component_scores"],
             fallback=xai_result.get("fallback", True),
             timestamp=xai_result.get("timestamp", "")

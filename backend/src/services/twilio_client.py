@@ -42,36 +42,3 @@ async def send_async_verdict_reply(to_number: str, text_message: str):
         logger.info(f"Sent Async Twilio reply: {message.sid}")
     except Exception as e:
         logger.error(f"Failed to send async reply: {e}")
-
-def send_whatsapp_alert(risk_score: float, call_sid: str, reasons: list):
-    """
-    Sends an immediate WhatsApp alert to the pre-configured ALERT_RECIPIENT_NUMBER
-    when a high-risk call is detected.
-    """
-    client = get_twilio_client()
-    if not client or not settings.TWILIO_WHATSAPP_NUMBER or not settings.ALERT_RECIPIENT_NUMBER:
-        logger.warning("Twilio WhatsApp or Alert Recipient not configured. Cannot send alert.")
-        return
-
-    from_number = _ensure_whatsapp_address(settings.TWILIO_WHATSAPP_NUMBER)
-    to_target = _ensure_whatsapp_address(settings.ALERT_RECIPIENT_NUMBER)
-    
-    reasons_text = ", ".join(reasons) if reasons else "Suspicious conversational patterns"
-    alert_message = (
-        f"🚨 *HIGH RISK CALL DETECTED* 🚨\n\n"
-        f"Confidence Score: {risk_score*100:.1f}%\n"
-        f"Call SID: {call_sid}\n"
-        f"Detected indicators: {reasons_text}\n\n"
-        f"⚠️ *WARNING: Do NOT share any personal information, bank details, OTPs, or passwords on this call.* ⚠️\n\n"
-        f"Please verify the safety of this communication immediately."
-    )
-    
-    try:
-        message = client.messages.create(
-            from_=from_number,
-            body=alert_message,
-            to=to_target
-        )
-        logger.info(f"Sent WhatsApp Alert: {message.sid}")
-    except Exception as e:
-        logger.error(f"Failed to send WhatsApp alert: {e}")

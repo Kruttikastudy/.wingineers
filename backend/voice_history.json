@@ -1,27 +1,5 @@
 [
   {
-    "call_sid": "CAde9a5a06213e34c1441ebf353a49b9f8",
-    "from": "+917506071608",
-    "overall_risk": 40,
-    "all_indicators": [
-      "Sensitive information requested"
-    ],
-    "duration_sec": "46",
-    "status": "completed",
-    "timestamp": "2026-03-17T02:35:00.198212Z"
-  },
-  {
-    "call_sid": "CA755babb87ce8945ab73c4b73dafda799",
-    "from": "+917506071608",
-    "overall_risk": 40,
-    "all_indicators": [
-      "Sensitive information requested"
-    ],
-    "duration_sec": "43",
-    "status": "completed",
-    "timestamp": "2026-03-17T02:33:53.419174Z"
-  },
-  {
     "call_sid": "CAab78f588cba0a9972a19f6380048ad7c",
     "from": "+917506071608",
     "overall_risk": 0,

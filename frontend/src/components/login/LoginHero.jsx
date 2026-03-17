@@ -7,7 +7,7 @@ export default function LoginHero() {
           <span>System Active & Monitoring</span>
         </div>
         <h1 className="text-6xl xl:text-7xl font-black mb-6 tracking-tight leading-[1.1] text-white drop-shadow-2xl">
-          Nexus <span className="text-blue-400">Hub</span>
+          Cryp<span className="text-blue-400">tix</span>
         </h1>
         <p className="text-xl text-white font-bold leading-relaxed max-w-xl drop-shadow-2xl">
           Access your smart cyber defense platform to investigate AI-detected

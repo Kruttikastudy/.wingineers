@@ -1,7 +1,16 @@
 import { Check } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "../../context/AuthContext";
 
 export default function LandingPricing() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [rzpLoaded, setRzpLoaded] = useState(false);
+  const [rzpKeyId, setRzpKeyId] = useState(null);
   const plans = [
     {
       name: "Standard",
@@ -44,6 +53,137 @@ export default function LandingPricing() {
     },
   ];
 
+  // Load Razorpay script on mount
+  useEffect(() => {
+    const envKey =
+      import.meta.env.VITE_RAZORPAY_ID ||
+      import.meta.env.VITE_RAZORPAY_KEY ||
+      "rzp_test_mock";
+    setRzpKeyId(envKey);
+
+    // Check if script already exists
+    const existing = document.querySelector(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+    );
+    if (existing) {
+      setRzpLoaded(true);
+      return;
+    }
+
+    // Load Razorpay script from CDN
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => {
+      setRzpLoaded(true);
+    };
+    script.onerror = () => {
+      setError("Failed to load payment gateway.");
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      const s = document.querySelector(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+      );
+      if (s) {
+        document.body.removeChild(s);
+      }
+    };
+  }, []);
+
+  // Handle successful payment - upgrade user subscription
+  const handlePaymentSuccess = async (paymentId) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
+      // Call backend to upgrade subscription
+      const response = await fetch(`${apiUrl}/auth/upgrade-subscription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: user?.email,
+          payment_id: paymentId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to upgrade subscription");
+      }
+
+      await response.json();
+      setSuccess(
+        `✓ Payment successful! Account upgraded to Premium. Payment ID: ${paymentId}`
+      );
+      setLoading(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      console.error("❌ Subscription upgrade failed:", err);
+      setError(`Payment recorded but subscription update failed: ${err.message}`);
+      setLoading(false);
+    }
+  };
+
+  // Handle premium plan upgrade
+  const handleUpgrade = () => {
+    setError(null);
+    setSuccess(null);
+
+    // Check if user is logged in
+    if (!user) {
+      setError("You must be signed in to upgrade. Redirecting...");
+      setTimeout(() => navigate("/login"), 1500);
+      return;
+    }
+
+    // Check if Razorpay is ready
+    if (!rzpLoaded || !rzpKeyId) {
+      setError("Payment gateway not ready. Please refresh and try again.");
+      return;
+    }
+
+    setLoading(true);
+
+    // Razorpay options (₹1 = 100 paise)
+    const options = {
+      key: rzpKeyId,
+      amount: 100,
+      currency: "INR",
+      name: "KES Lumina",
+      description: "Premium Plan — Monthly Subscription",
+      prefill: {
+        email: user?.email || "",
+        name: user?.name || "User",
+      },
+      handler: function (response) {
+        handlePaymentSuccess(response.razorpay_payment_id);
+      },
+      modal: {
+        ondismiss: function () {
+          setLoading(false);
+        },
+      },
+    };
+
+    try {
+      const razorpay = new window.Razorpay(options);
+      razorpay.on("payment.failed", function (response) {
+        const errorMsg =
+          response?.error?.description ||
+          response?.error?.reason ||
+          "Payment declined";
+        setError(`Payment failed: ${errorMsg}`);
+        setLoading(false);
+      });
+      razorpay.open();
+    } catch (err) {
+      setError(err.message || "Failed to open payment gateway");
+      setLoading(false);
+    }
+  };
+
   return (
     <section
       id="pricing"
@@ -62,6 +202,18 @@ export default function LandingPricing() {
           security.
         </p>
       </div>
+
+      {/* Error / Success banners */}
+      {error && (
+        <div className="mb-8 mx-auto max-w-2xl px-5 py-4 border border-red-500/30 bg-red-500/10 rounded-lg">
+          <p className="text-red-400 text-sm font-mono">⚠ {error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="mb-8 mx-auto max-w-2xl px-5 py-4 border border-cyan-500/30 bg-cyan-500/10 rounded-lg">
+          <p className="text-cyan-400 text-sm font-mono">✓ {success}</p>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row justify-center items-stretch gap-6 max-w-4xl mx-auto">
         {plans.map((plan) => (
@@ -136,16 +288,22 @@ export default function LandingPricing() {
                 </div>
 
                 <div className="relative mt-6 pt-4">
-                  <Link
-                    to="/login"
-                    className={`group relative flex w-full justify-center items-center py-4 px-4 rounded-full font-mono font-black text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] ${
-                      plan.highlighted ?
-                        "bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)]"
-                      : "bg-white/10 text-white hover:bg-white/20 border border-white/20"
-                    }`}
-                  >
-                    {plan.ctaLabel}
-                  </Link>
+                  {plan.highlighted ? (
+                    <button
+                      onClick={handleUpgrade}
+                      disabled={loading}
+                      className="group relative flex w-full justify-center items-center py-4 px-4 rounded-full font-mono font-black text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] bg-gradient-to-r from-teal-500 to-blue-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? "Processing..." : plan.ctaLabel}
+                    </button>
+                  ) : (
+                    <Link
+                      to="/login"
+                      className="group relative flex w-full justify-center items-center py-4 px-4 rounded-full font-mono font-black text-xs uppercase tracking-widest transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] bg-white/10 text-white hover:bg-white/20 border border-white/20"
+                    >
+                      {plan.ctaLabel}
+                    </Link>
+                  )}
                 </div>
 
                 {plan.guaranteeText && (

@@ -1,13 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import Navbar from "../components/shared/Navbar";
 import {
-  Brain,
   Shield,
-  Activity,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
+  Brain,
   Search,
   ChevronRight,
   Loader2,
@@ -18,292 +13,265 @@ import {
   Zap,
   Eye,
   Target,
+  Globe,
+  Mic2,
+  Sparkles,
+  LayoutDashboard,
+  Microscope,
+  LogOut,
+  AlertTriangle,
+  CheckCircle2,
+  Send,
+  X,
 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import Sidebar from "../components/shared/Sidebar";
+import MetricCard from "../components/dashboard/MetricCard";
+import TokenHeatmap from "../components/xai/TokenHeatmap";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-const API_BASE = "http://localhost:8000";
 
-// ── Vulnerability Gauge Component ──
-function VulnerabilityGauge({ score, totalScans, totalThreats }) {
-  const getColor = (s) => {
-    if (s >= 70) return { ring: "stroke-red-500", text: "text-red-400", label: "HIGH RISK", bg: "from-red-500/10" };
-    if (s >= 40) return { ring: "stroke-amber-500", text: "text-amber-400", label: "ELEVATED", bg: "from-amber-500/10" };
-    if (s >= 20) return { ring: "stroke-yellow-500", text: "text-yellow-400", label: "MODERATE", bg: "from-yellow-500/10" };
-    return { ring: "stroke-emerald-500", text: "text-emerald-400", label: "LOW RISK", bg: "from-emerald-500/10" };
-  };
+/* ─── Risk Gauge ──────────────────────────────────────── */
+function RiskGauge({ score }) {
+  const cfg =
+    score >= 70 ? { color: "#ef4444", label: "High Risk", glow: "#ef444440" }
+    : score >= 40 ? { color: "#f97316", label: "Elevated", glow: "#f9731640" }
+    : score >= 20 ? { color: "#f59e0b", label: "Moderate", glow: "#f59e0b40" }
+    : { color: "#10b981", label: "Low Risk", glow: "#10b98140" };
 
-  const c = getColor(score);
-  const circumference = 2 * Math.PI * 54;
-  const offset = circumference - (score / 100) * circumference;
+  const r = 46,
+    circ = 2 * Math.PI * r;
+  const offset = circ - (score / 100) * circ;
 
   return (
-    <div className={`relative bg-gradient-to-br ${c.bg} to-transparent backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden`}>
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
-          <Target className="w-4 h-4 text-indigo-400" />
+    <div className="flex flex-col items-center gap-3">
+      <div
+        className="relative"
+        style={{ filter: `drop-shadow(0 0 10px ${cfg.glow})` }}
+      >
+        <svg width="120" height="120" className="-rotate-90">
+          <circle
+            cx="60"
+            cy="60"
+            r={r}
+            fill="none"
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth="7"
+          />
+          <circle
+            cx="60"
+            cy="60"
+            r={r}
+            fill="none"
+            stroke={cfg.color}
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={offset}
+            style={{
+              transition: "stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1)",
+            }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-bold text-white leading-none">
+            {Math.round(score)}
+          </span>
+          <span className="text-[9px] text-white/30 font-medium">/100</span>
         </div>
-        <h2 className="text-xl font-black text-white tracking-tight">User Vulnerability Score</h2>
       </div>
-
-      <div className="flex items-center justify-center gap-10">
-        <div className="relative">
-          <svg width="140" height="140" className="-rotate-90">
-            <circle cx="70" cy="70" r="54" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
-            <circle
-              cx="70" cy="70" r="54" fill="none"
-              className={c.ring}
-              strokeWidth="10" strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={offset}
-              style={{ transition: "stroke-dashoffset 1.5s ease-out" }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={`text-3xl font-black ${c.text}`}>{Math.round(score)}</span>
-            <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">/100</span>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className={`text-xs font-black uppercase tracking-widest ${c.text}`}>{c.label}</div>
-          <div className="space-y-1.5">
-            <div className="text-xs text-white/40"><span className="text-white font-bold">{totalScans}</span> Total Scans</div>
-            <div className="text-xs text-white/40"><span className="text-white font-bold">{totalThreats}</span> Threats Detected</div>
-          </div>
-        </div>
-      </div>
+      <span
+        className="text-[10px] font-semibold px-3 py-1 rounded-full"
+        style={{
+          background: `${cfg.color}15`,
+          color: cfg.color,
+          border: `1px solid ${cfg.color}25`,
+        }}
+      >
+        {cfg.label}
+      </span>
     </div>
   );
 }
 
-// ── Token Heatmap Component ──
-function TokenHeatmap({ tokens, shapValues, modelScore, severity, cta, fallback }) {
-  const getTokenColor = (val) => {
-    const absVal = Math.abs(val);
-    const intensity = Math.min(absVal * 3, 1);
-    if (val > 0.01) return `rgba(239, 68, 68, ${0.15 + intensity * 0.6})`;
-    if (val < -0.01) return `rgba(34, 197, 94, ${0.15 + intensity * 0.6})`;
-    return `rgba(255, 255, 255, 0.05)`;
-  };
 
-  const getSeverityStyle = (sev) => {
-    const map = {
-      CRITICAL: "text-red-400 bg-red-500/10 border-red-500/20",
-      HIGH: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-      MODERATE: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-      LOW: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-    };
-    return map[sev] || map.LOW;
-  };
-
-  return (
-    <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 lg:p-10 shadow-2xl">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center border border-purple-500/20">
-          <Brain className="w-4 h-4 text-purple-400" />
-        </div>
-        <h2 className="text-xl font-black text-white tracking-tight">Explainability — SHAP Token Map</h2>
-      </div>
-
-      {severity && (
-        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest border mb-6 ${getSeverityStyle(severity)}`}>
-          <Zap className="w-3.5 h-3.5" />
-          Fused Score: {Math.round(modelScore)}/100 — {severity}
-        </div>
-      )}
-
-      {tokens && tokens.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5 mb-6" style={{ lineHeight: "2.2" }}>
-          {tokens.map((token, i) => (
-            <span
-              key={i}
-              className="group relative inline-block px-2 py-0.5 rounded font-mono text-sm text-white cursor-default transition-transform hover:scale-110"
-              style={{ backgroundColor: getTokenColor(shapValues[i] || 0) }}
-            >
-              {token}
-              <span className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 bg-[#1a1a2e] border border-white/20 rounded-md px-2 py-1 text-[10px] whitespace-nowrap z-50 font-mono text-white">
-                SHAP: {(shapValues[i] || 0) >= 0 ? "+" : ""}{(shapValues[i] || 0).toFixed(4)}
-              </span>
-            </span>
-          ))}
-        </div>
-      ) : (
-        <div className="text-sm text-white/40 mb-6 text-center py-10">
-          {fallback ? "SHAP tokens unavailable — model confidence only." : "Enter a URL above to see token analysis."}
-        </div>
-      )}
-
-      {cta && (
-        <div className="text-sm text-white/50 border-t border-white/5 pt-4">
-          <span className="font-bold text-white">Recommendation:</span> {cta}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Activity Timeline ──
+/* ─── Activity Bar Chart ──────────────────────────────── */
 function ActivityTimeline({ dailyTrend }) {
-  if (!dailyTrend || dailyTrend.length === 0) {
-    return (
-      <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center border border-cyan-500/20">
-            <BarChart3 className="w-4 h-4 text-cyan-400" />
-          </div>
-          <h2 className="text-xl font-black text-white tracking-tight">Activity Timeline</h2>
-        </div>
-        <div className="text-center py-10 text-sm text-white/30">No activity data yet. Start scanning to build your timeline.</div>
-      </div>
-    );
-  }
-
-  const maxScore = Math.max(...dailyTrend.map(d => d.avg_score), 1);
+  const max = Math.max(...(dailyTrend?.map((d) => d.avg_score) || [0]), 1);
 
   return (
-    <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center border border-cyan-500/20">
-          <BarChart3 className="w-4 h-4 text-cyan-400" />
-        </div>
-        <h2 className="text-xl font-black text-white tracking-tight">Activity Timeline</h2>
+    <div
+      className="rounded-xl p-6"
+      style={{
+        background:
+          "linear-gradient(135deg, #0f172a 0%, #111827 60%, #0c1528 100%)",
+        border: "1px solid rgba(99,102,241,0.15)",
+      }}
+    >
+      <div className="flex items-center gap-2 mb-5">
+        <BarChart3 className="w-4 h-4" style={{ color: "#818cf8" }} />
+        <h3 className="text-sm font-semibold text-white">Activity Timeline</h3>
+        <span
+          className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full"
+          style={{ background: "rgba(99,102,241,0.1)", color: "#818cf8" }}
+        >
+          {dailyTrend?.length || 0} days
+        </span>
       </div>
 
-      <div className="flex items-end gap-2 h-40 px-2">
-        {dailyTrend.map((day, i) => {
-          const height = Math.max((day.avg_score / maxScore) * 100, 4);
-          const barColor =
-            day.avg_score >= 70 ? "bg-red-500" :
-            day.avg_score >= 40 ? "bg-amber-500" :
-            day.avg_score >= 20 ? "bg-yellow-500" :
-            "bg-emerald-500";
-
-          return (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-              <div
-                className={`w-full rounded-t-lg ${barColor} transition-all duration-500 min-w-[8px]`}
-                style={{ height: `${height}%` }}
+      {dailyTrend?.length > 0 ?
+        <div className="h-28 w-full -ml-4 mt-4 relative">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={dailyTrend}>
+              <defs>
+                <linearGradient
+                  id="colorAvgScoreXai"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="5%" stopColor="#818cf8" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#818cf8" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="rgba(255,255,255,0.04)"
               />
-              <span className="text-[8px] font-mono text-white/20 truncate w-full text-center">
-                {day.date?.slice(5) || ""}
-              </span>
-              <div className="hidden group-hover:block absolute bottom-full mb-2 bg-[#1a1a2e] border border-white/20 rounded-lg px-3 py-2 text-[10px] z-50 whitespace-nowrap text-white">
-                <div className="font-bold">{day.date}</div>
-                <div>Avg Score: {Math.round(day.avg_score)}</div>
-                <div>Scans: {day.scan_count}</div>
-                <div>Threats: {day.threat_count}</div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="flex justify-between mt-4 text-[10px] font-bold text-white/20 uppercase tracking-widest">
-        <span>Oldest</span>
-        <span>Today</span>
-      </div>
+              <XAxis
+                dataKey="date"
+                tickFormatter={(val) => val.slice(5)}
+                stroke="rgba(255,255,255,0.1)"
+                tick={{
+                  fill: "rgba(255,255,255,0.3)",
+                  fontSize: 10,
+                  fontFamily: "monospace",
+                }}
+                axisLine={false}
+                tickLine={false}
+                dy={10}
+              />
+              <YAxis
+                stroke="rgba(255,255,255,0.1)"
+                tick={{
+                  fill: "rgba(255,255,255,0.3)",
+                  fontSize: 10,
+                  fontFamily: "monospace",
+                }}
+                axisLine={false}
+                tickLine={false}
+                domain={[
+                  0,
+                  Math.max(...dailyTrend.map((d) => d.avg_score || 0), 10),
+                ]}
+                allowDecimals={false}
+              />
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div
+                        className="px-3 py-2 rounded-lg text-[10px] whitespace-nowrap text-white"
+                        style={{
+                          background: "#0d1117",
+                          border: "1px solid rgba(99,102,241,0.3)",
+                          boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+                        }}
+                      >
+                        <div className="font-semibold mb-1 text-indigo-300">
+                          {data.date}
+                        </div>
+                        <div className="text-white/50">
+                          Avg risk:{" "}
+                          <span className="text-white font-medium">
+                            {Math.round(data.avg_score || 0)}
+                          </span>
+                        </div>
+                        <div className="text-white/50">
+                          {data.scan_count || 0} scan
+                          {data.scan_count !== 1 ? "s" : ""}
+                        </div>
+                        <div className="text-white/50">
+                          {data.threat_count || 0} threat
+                          {data.threat_count !== 1 ? "s" : ""}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="avg_score"
+                stroke="#818cf8"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorAvgScoreXai)"
+                activeDot={{
+                  r: 4,
+                  fill: "#0d1117",
+                  stroke: "#818cf8",
+                  strokeWidth: 2,
+                }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      : <div className="py-8 text-center text-xs text-white/25">
+          No timeline data yet — start scanning URLs to build history.
+        </div>
+      }
     </div>
   );
 }
 
-// ── Feedback Stats Widget ──
-function FeedbackStats({ stats }) {
-  return (
-    <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center border border-emerald-500/20">
-          <MessageSquare className="w-4 h-4 text-emerald-400" />
-        </div>
-        <h2 className="text-xl font-black text-white tracking-tight">Continuous Learning</h2>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="text-center p-4 rounded-2xl bg-black/20 border border-white/5">
-          <div className="text-2xl font-black text-white">{stats.total || 0}</div>
-          <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Feedback</div>
-        </div>
-        <div className="text-center p-4 rounded-2xl bg-black/20 border border-white/5">
-          <div className="text-2xl font-black text-amber-400">{stats.false_positives || 0}</div>
-          <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">False +</div>
-        </div>
-        <div className="text-center p-4 rounded-2xl bg-black/20 border border-white/5">
-          <div className="text-2xl font-black text-red-400">{stats.false_negatives || 0}</div>
-          <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">False -</div>
-        </div>
-      </div>
-
-      {stats.total > 0 && (
-        <div className="space-y-3">
-          <div>
-            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1.5">
-              <span>False Positive Rate</span>
-              <span className="text-amber-400">{(stats.fp_rate * 100).toFixed(1)}%</span>
-            </div>
-            <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(stats.fp_rate * 100, 100)}%` }} />
-            </div>
-          </div>
-          <div>
-            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1.5">
-              <span>False Negative Rate</span>
-              <span className="text-red-400">{(stats.fn_rate * 100).toFixed(1)}%</span>
-            </div>
-            <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-red-500 rounded-full" style={{ width: `${Math.min(stats.fn_rate * 100, 100)}%` }} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {stats.recent_feedback && stats.recent_feedback.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-white/5">
-          <div className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-3">Recent Feedback</div>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {stats.recent_feedback.slice(0, 5).map((f, i) => (
-              <div key={i} className="flex items-center gap-3 text-xs text-white/50">
-                {f.user_label === "safe" ?
-                  <ThumbsUp className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" /> :
-                  <ThumbsDown className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-                }
-                <span className="truncate font-mono">{f.url}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Main Dashboard ──
+/* ─── Main Component ──────────────────────────────────── */
 export default function XAIDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [feedbackStats, setFeedbackStats] = useState({});
   const [loading, setLoading] = useState(true);
-
-  // Inline explainer state
   const [testUrl, setTestUrl] = useState("");
   const [explaining, setExplaining] = useState(false);
   const [xaiResult, setXaiResult] = useState(null);
+  const [error, setError] = useState(null);
 
-  const userId = "browser_default"; // Extension provides its own ID; dashboard uses a default
+  const userId = "browser_default";
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
+    const iv = setInterval(fetchData, 10000);
+    return () => clearInterval(iv);
   }, []);
 
   async function fetchData() {
     try {
       const [profileRes, feedbackRes] = await Promise.all([
-        fetch(`${API_BASE}/api/xai/user-profile/${userId}`).then(r => r.ok ? r.json() : null),
-        fetch(`${API_BASE}/api/xai/feedback/stats`).then(r => r.ok ? r.json() : null),
+        fetch(`${API_BASE}/api/xai/user-profile/${userId}`).then((r) =>
+          r.ok ? r.json() : null,
+        ),
+        fetch(`${API_BASE}/api/xai/feedback/stats`).then((r) =>
+          r.ok ? r.json() : null,
+        ),
       ]);
       if (profileRes) setProfile(profileRes);
       if (feedbackRes) setFeedbackStats(feedbackRes);
     } catch (err) {
-      console.error("Dashboard data fetch error:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -314,7 +282,7 @@ export default function XAIDashboard() {
     if (!testUrl.trim()) return;
     setExplaining(true);
     setXaiResult(null);
-
+    setError(null);
     try {
       const res = await fetch(`${API_BASE}/api/xai/explain`, {
         method: "POST",
@@ -324,150 +292,460 @@ export default function XAIDashboard() {
       if (res.ok) {
         const data = await res.json();
         setXaiResult(data);
-        fetchData(); // Refresh profile after scan
+        fetchData();
       } else {
-        setXaiResult({ error: `API returned ${res.status}` });
+        setError(`API returned ${res.status}`);
       }
     } catch (err) {
-      setXaiResult({ error: err.message });
+      setError(err.message);
     } finally {
       setExplaining(false);
     }
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-black text-white font-sans overflow-x-hidden pt-24 pb-20">
-      <Navbar />
+  const vulnScore = profile?.vulnerability_score || 0;
+  const totalScans = profile?.total_scans || 0;
+  const totalThreats = profile?.total_threats || 0;
+  const fpRate = feedbackStats?.fp_rate || 0;
+  const fnRate = feedbackStats?.fn_rate || 0;
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6">
+  return (
+    <div
+      className="min-h-screen flex"
+      style={{ background: "#080d14", fontFamily: "'Inter', sans-serif" }}
+    >
+      <Sidebar
+        user={user}
+        onLogout={() => {
+          logout();
+          navigate("/login");
+        }}
+      />
+
+      <div className="flex-1 flex flex-col" style={{ marginLeft: "230px" }}>
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
-          <div className="max-w-2xl">
-            <h1 className="text-5xl lg:text-6xl font-black tracking-tighter mb-4 italic leading-tight">
-              XAI{" "}
-              <span className="inline-block pr-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-500 to-cyan-600 italic">
-                DASHBOARD
-              </span>
-            </h1>
-            <p className="text-lg text-white/40 font-medium">
-              Explainable AI analysis with SHAP token attribution, user profiling, and continuous learning.
+        <header
+          className="flex items-center justify-between px-8 py-4 sticky top-0 z-40"
+          style={{
+            background: "rgba(8,13,20,0.8)",
+            backdropFilter: "blur(12px)",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+          }}
+        >
+          <div className="flex items-center gap-2 text-xs text-white/30 font-medium">
+            <span>Platform</span>
+            <ChevronRight className="w-3 h-3" />
+            <span className="text-white/70">XAI Dashboard</span>
+          </div>
+          <div className="flex items-center gap-5">
+            <div
+              className="flex items-center gap-1.5 text-xs font-semibold"
+              style={{ color: "#10b981" }}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              SHAP Engine Active
+            </div>
+          </div>
+        </header>
+
+        {/* Body */}
+        <main className="flex-1 px-8 py-8 max-w-[1400px] w-full mx-auto">
+          {/* Title */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className="p-1.5 rounded-lg"
+                style={{ background: "rgba(167,139,250,0.15)" }}
+              >
+                <Microscope className="w-4 h-4 text-purple-400" />
+              </div>
+              <h1 className="text-xl font-bold text-white tracking-tight">
+                XAI Dashboard
+              </h1>
+            </div>
+            <p className="text-sm text-white/35 ml-8">
+              Explainable AI analysis with SHAP token attribution, user
+              vulnerability profiling, and continuous learning feedback.
             </p>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Main Content */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* Inline Explainer */}
-            <section className="group relative bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 lg:p-10 shadow-2xl overflow-hidden transition-all duration-500 hover:border-purple-500/30">
-              <div className="absolute top-0 right-0 p-8 text-purple-500/5 group-hover:text-purple-500/10 transition-colors">
-                <Eye className="w-32 h-32 rotate-12" />
-              </div>
+          {/* Metric Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <MetricCard
+              value={totalScans}
+              label="URLs Scanned"
+              icon={Search}
+              accent="#3b82f6"
+            />
+            <MetricCard
+              value={totalThreats}
+              label="Threats Detected"
+              icon={AlertTriangle}
+              accent="#ef4444"
+            />
+            <MetricCard
+              value={feedbackStats?.total || 0}
+              label="Feedback Items"
+              icon={MessageSquare}
+              accent="#a78bfa"
+            />
+            <MetricCard
+              value={`${Math.round(vulnScore)}`}
+              label="Vulnerability Score"
+              icon={Target}
+              accent={
+                vulnScore >= 70 ? "#ef4444"
+                : vulnScore >= 40 ?
+                  "#f97316"
+                : "#10b981"
+              }
+            />
+          </div>
 
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center border border-purple-500/20">
-                    <Search className="w-4 h-4 text-purple-400" />
-                  </div>
-                  <h2 className="text-xl font-black text-white tracking-tight">
-                    Explain Any URL
+          {/* Two-column layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* LEFT: Explainer + Results + Timeline */}
+            <div className="lg:col-span-2 space-y-5">
+              {/* URL Explainer */}
+              <div
+                className="rounded-xl p-6"
+                style={{
+                  background: "#111827",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <div className="flex items-center gap-2 mb-5">
+                  <Eye className="w-4 h-4 text-purple-400" />
+                  <h2 className="text-sm font-semibold text-white">
+                    URL Explainer
                   </h2>
+                  {xaiResult && !xaiResult.error && (
+                    <span
+                      className="ml-auto flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                      style={{
+                        background: "rgba(16,185,129,0.1)",
+                        color: "#10b981",
+                        border: "1px solid rgba(16,185,129,0.2)",
+                      }}
+                    >
+                      <CheckCircle2 className="w-3 h-3" /> Complete
+                    </span>
+                  )}
                 </div>
 
-                <form onSubmit={handleExplain} className="flex flex-col sm:flex-row gap-4 mb-6">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20" />
+                <form onSubmit={handleExplain} className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
                     <input
                       type="text"
                       value={testUrl}
                       onChange={(e) => setTestUrl(e.target.value)}
-                      placeholder="Enter a URL for SHAP-powered explanation..."
-                      className="w-full px-14 py-5 bg-black/40 border border-white/10 rounded-3xl text-white placeholder:text-white/20 focus:outline-none focus:border-purple-500/50 transition-all font-mono text-sm tracking-tight"
+                      placeholder="https://example.com/path?query=... — paste any URL for SHAP analysis"
+                      className="w-full pl-10 pr-4 py-3 rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none transition-all font-mono"
+                      style={{
+                        background: "rgba(255,255,255,0.03)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        caretColor: "#a78bfa",
+                      }}
+                      onFocus={(e) =>
+                        (e.target.style.borderColor = "rgba(167,139,250,0.4)")
+                      }
+                      onBlur={(e) =>
+                        (e.target.style.borderColor = "rgba(255,255,255,0.08)")
+                      }
                     />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={explaining || !testUrl}
-                    className="group px-10 py-5 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-3xl transition-all shadow-[0_0_25px_rgba(147,51,234,0.3)] hover:shadow-[0_0_35px_rgba(147,51,234,0.5)] flex items-center justify-center gap-3 uppercase tracking-widest text-xs"
-                  >
-                    {explaining ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        Explain <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </>
+                    {testUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTestUrl("");
+                          setXaiResult(null);
+                          setError(null);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-white/25 hover:text-white/50 transition-colors"
+                        style={{ background: "rgba(255,255,255,0.05)" }}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     )}
-                  </button>
-                </form>
-
-                {xaiResult && xaiResult.error && (
-                  <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-sm text-red-400">
-                    Analysis failed: {xaiResult.error}
                   </div>
-                )}
-              </div>
-            </section>
-
-            {/* Token Heatmap Result */}
-            {xaiResult && !xaiResult.error && (
-              <TokenHeatmap
-                tokens={xaiResult.tokens}
-                shapValues={xaiResult.shap_values}
-                modelScore={xaiResult.fused_score}
-                severity={xaiResult.severity}
-                cta={xaiResult.cta}
-                fallback={xaiResult.fallback}
-              />
-            )}
-
-            {/* Activity Timeline */}
-            <ActivityTimeline dailyTrend={profile?.daily_trend || []} />
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-4 space-y-8">
-            {/* Vulnerability Gauge */}
-            {loading ? (
-              <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center justify-center gap-4">
-                <div className="relative w-16 h-16">
-                  <div className="absolute inset-0 rounded-full border-2 border-purple-500/20" />
-                  <div className="absolute inset-0 rounded-full border-t-2 border-purple-500 animate-spin" />
-                </div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-white/40 animate-pulse">
-                  Loading Profile...
-                </p>
-              </div>
-            ) : (
-              <VulnerabilityGauge
-                score={profile?.vulnerability_score || 0}
-                totalScans={profile?.total_scans || 0}
-                totalThreats={profile?.total_threats || 0}
-              />
-            )}
-
-            {/* Feedback Stats */}
-            <FeedbackStats stats={feedbackStats} />
-
-            {/* Top Domains */}
-            {profile?.top_domains && profile.top_domains.length > 0 && (
-              <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl">
-                <h2 className="text-xs font-black text-white/30 uppercase tracking-[0.2em] mb-4">
-                  Your Top Domains
-                </h2>
-                <div className="space-y-2">
-                  {profile.top_domains.slice(0, 8).map((domain, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-black/20 border border-white/5">
-                      <div className="w-6 h-6 rounded-md bg-indigo-500/20 flex items-center justify-center text-[10px] font-black text-indigo-400">
-                        {i + 1}
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="submit"
+                      disabled={explaining || !testUrl.trim()}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-xs font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50 active:scale-95"
+                      style={{
+                        background: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+                      }}
+                    >
+                      {explaining ?
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          Analyzing...
+                        </>
+                      : <>
+                          <Send className="w-3.5 h-3.5" />
+                          Explain
+                        </>
+                      }
+                    </button>
+                    {error && (
+                      <div
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg"
+                        style={{
+                          background: "rgba(239,68,68,0.08)",
+                          border: "1px solid rgba(239,68,68,0.2)",
+                        }}
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                        <span className="text-xs text-red-400 font-medium">
+                          {error}
+                        </span>
                       </div>
-                      <span className="text-xs font-mono text-white/60 truncate">{domain}</span>
+                    )}
+                  </div>
+                </form>
+              </div>
+
+              {/* Loading */}
+              {explaining && (
+                <div
+                  className="rounded-xl p-10 text-center"
+                  style={{
+                    background: "#111827",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
+                    style={{ background: "rgba(167,139,250,0.1)" }}
+                  >
+                    <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+                  </div>
+                  <p className="text-sm font-semibold text-white mb-1">
+                    Running SHAP analysis...
+                  </p>
+                  <p className="text-xs text-white/30">
+                    Computing token-level attribution values
+                  </p>
+                </div>
+              )}
+
+              {/* SHAP Result */}
+              {xaiResult && !xaiResult.error && !explaining && (
+                <TokenHeatmap
+                  tokens={xaiResult.tokens}
+                  shapValues={xaiResult.shap_values}
+                  modelScore={xaiResult.fused_score}
+                  severity={xaiResult.severity}
+                  cta={xaiResult.cta}
+                  fallback={xaiResult.fallback}
+                />
+              )}
+
+              {/* Empty state */}
+              {!xaiResult && !explaining && (
+                <div
+                  className="rounded-xl p-10 text-center"
+                  style={{
+                    background: "#111827",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    borderStyle: "dashed",
+                  }}
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
+                    style={{
+                      background: "rgba(167,139,250,0.1)",
+                      border: "1px solid rgba(167,139,250,0.15)",
+                    }}
+                  >
+                    <Brain className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-white mb-1">
+                    No analysis yet
+                  </h3>
+                  <p className="text-xs text-white/30 max-w-xs mx-auto leading-relaxed">
+                    Paste a URL above to run SHAP-powered token attribution and
+                    see which parts of the URL drove the model's decision.
+                  </p>
+                </div>
+              )}
+
+              {/* Timeline */}
+              <ActivityTimeline dailyTrend={profile?.daily_trend || []} />
+            </div>
+
+            {/* RIGHT: Vulnerability + Learning + Domains */}
+            <div className="space-y-5">
+              {/* Vulnerability Score */}
+              <div
+                className="rounded-xl p-5"
+                style={{
+                  background: "#111827",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <Target className="w-3.5 h-3.5 text-white/30" />
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                    Vulnerability Score
+                  </h3>
+                </div>
+                {loading ?
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+                  </div>
+                : <div className="flex flex-col items-center py-2 gap-4">
+                    <RiskGauge score={vulnScore} />
+                    <div className="w-full space-y-2">
+                      {[
+                        {
+                          label: "Total Scans",
+                          value: totalScans,
+                          color: "#3b82f6",
+                        },
+                        {
+                          label: "Threats Found",
+                          value: totalThreats,
+                          color: "#ef4444",
+                        },
+                      ].map(({ label, value, color }) => (
+                        <div
+                          key={label}
+                          className="flex items-center justify-between py-2 border-b last:border-0"
+                          style={{ borderColor: "rgba(255,255,255,0.04)" }}
+                        >
+                          <span className="text-[11px] text-white/35 font-medium">
+                            {label}
+                          </span>
+                          <span className="text-xs font-bold" style={{ color }}>
+                            {value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                }
+              </div>
+
+              {/* Continuous Learning */}
+              <div
+                className="rounded-xl p-5"
+                style={{
+                  background: "#111827",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                }}
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <MessageSquare className="w-3.5 h-3.5 text-white/30" />
+                  <h3 className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+                    Continuous Learning
+                  </h3>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {[
+                    {
+                      label: "Total",
+                      value: feedbackStats?.total || 0,
+                      color: "#fff",
+                    },
+                    {
+                      label: "False +",
+                      value: feedbackStats?.false_positives || 0,
+                      color: "#f59e0b",
+                    },
+                    {
+                      label: "False -",
+                      value: feedbackStats?.false_negatives || 0,
+                      color: "#ef4444",
+                    },
+                  ].map(({ label, value, color }) => (
+                    <div
+                      key={label}
+                      className="text-center p-2.5 rounded-lg"
+                      style={{ background: "rgba(255,255,255,0.03)" }}
+                    >
+                      <p
+                        className="text-base font-bold mb-0.5"
+                        style={{ color }}
+                      >
+                        {value}
+                      </p>
+                      <p className="text-[9px] text-white/25 uppercase tracking-wide font-medium">
+                        {label}
+                      </p>
                     </div>
                   ))}
                 </div>
+                {feedbackStats?.total > 0 && (
+                  <div className="space-y-3">
+                    {[
+                      {
+                        label: "FP Rate",
+                        rate: fpRate * 100,
+                        color: "#f59e0b",
+                      },
+                      {
+                        label: "FN Rate",
+                        rate: fnRate * 100,
+                        color: "#ef4444",
+                      },
+                    ].map(({ label, rate, color }) => (
+                      <div key={label}>
+                        <div
+                          className="flex justify-between text-[10px] font-medium mb-1.5"
+                          style={{ color: "rgba(255,255,255,0.3)" }}
+                        >
+                          <span>{label}</span>
+                          <span style={{ color }}>{rate.toFixed(1)}%</span>
+                        </div>
+                        <div
+                          className="h-1 rounded-full overflow-hidden"
+                          style={{ background: "rgba(255,255,255,0.06)" }}
+                        >
+                          <div
+                            className="h-full rounded-full transition-all duration-700"
+                            style={{
+                              width: `${Math.min(rate, 100)}%`,
+                              background: color,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Recent feedback */}
+                {feedbackStats?.recent_feedback?.length > 0 && (
+                  <div
+                    className="mt-4 pt-4 border-t"
+                    style={{ borderColor: "rgba(255,255,255,0.05)" }}
+                  >
+                    <p className="text-[10px] font-semibold text-white/20 uppercase tracking-widest mb-2">
+                      Recent
+                    </p>
+                    <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                      {feedbackStats.recent_feedback.slice(0, 5).map((f, i) => (
+                        <div
+                          key={i}
+                          className="flex items-center gap-2 text-xs text-white/40"
+                        >
+                          {f.user_label === "safe" ?
+                            <ThumbsUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          : <ThumbsDown className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                          }
+                          <span className="truncate font-mono">{f.url}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );

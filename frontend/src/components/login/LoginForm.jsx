@@ -6,8 +6,16 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const { user, handleLoginSuccess, handleLoginError, loading, error } =
-    useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const {
+    user,
+    handleLoginSuccess,
+    handleLoginError,
+    manualLogin,
+    loading,
+    error,
+  } = useAuth();
   const googleButtonRef = useRef(null);
   const navigate = useNavigate();
 
@@ -21,9 +29,17 @@ export default function LoginForm() {
     googleButtonRef.current?.querySelector("div[role='button']")?.click();
   };
 
-  const handleManualLogin = (e) => {
+  const handleManualLogin = async (e) => {
     e.preventDefault();
-    navigate("/"); // Redirect to landing manually if Google isn't used
+
+    if (!email || !password) {
+      return;
+    }
+
+    const result = await manualLogin(email, password);
+    if (result.success) {
+      navigate("/");
+    }
   };
 
   return (
@@ -31,7 +47,7 @@ export default function LoginForm() {
       <div className="w-full max-w-sm mx-auto">
         <div className="mb-12 text-center lg:text-left">
           <h2 className="font-mono text-sm font-black text-blue-400 uppercase tracking-[0.3em] mb-3 drop-shadow-sm">
-            LUMINA
+            CRYPTIX
           </h2>
           <h3 className="font-display text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-md">
             Sign In
@@ -58,6 +74,8 @@ export default function LoginForm() {
                 id="email"
                 type="email"
                 placeholder="name@nexus.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="block w-full pl-12 pr-4 py-4 border border-white/20 rounded-2xl leading-5 bg-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:bg-white/20 transition-all duration-300 text-sm shadow-xl font-medium"
                 required
               />
@@ -88,6 +106,8 @@ export default function LoginForm() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="block w-full pl-12 pr-12 py-4 border border-white/20 rounded-2xl leading-5 bg-white/10 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:bg-white/20 transition-all duration-300 text-sm shadow-xl font-medium"
                 required
               />
@@ -120,23 +140,26 @@ export default function LoginForm() {
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full relative flex justify-center items-center py-4 px-4 rounded-2xl shadow-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-500 transform transition-all hover:scale-[1.02] active:scale-[0.98] overflow-hidden group shadow-blue-500/40"
+              disabled={loading || !email || !password}
+              className="w-full relative flex justify-center items-center py-4 px-4 rounded-2xl shadow-xl text-sm font-black text-white bg-blue-600 hover:bg-blue-500 transform transition-all hover:scale-[1.02] active:scale-[0.98] overflow-hidden group shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="font-mono relative z-10 flex items-center uppercase tracking-widest text-[11px]">
-                Authenticate
-                <svg
-                  className="ml-2 w-4 h-4 transform group-hover:translate-x-1 transition-transform"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M14 5l7 7m0 0l-7 7m7-7H3"
-                  />
-                </svg>
+                {loading ? "Authenticating..." : "Authenticate"}
+                {!loading && (
+                  <svg
+                    className="ml-2 w-4 h-4 transform group-hover:translate-x-1 transition-transform"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    />
+                  </svg>
+                )}
               </span>
             </button>
           </div>

@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # PhishTank Settings
     PHISHTANK_API_KEY: str | None = None
 
+    # MongoDB Settings
+    MONGO_CONNECTION_STRING: str | None = None
+
     model_config = {
         "env_file": ".env",
         "extra": "ignore"
