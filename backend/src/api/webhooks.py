@@ -105,11 +105,16 @@ async def twilio_voice_webhook(request: Request):
             try:
                 analysis = analyze_transcript(speech_result)
                 _accumulate_analysis(call_sid, analysis)
+                state = _call_state.get(call_sid, {})
                 payload = {
                     "call_sid": call_sid,
                     "from": caller,
                     "text": speech_result,
                     "analysis": analysis,
+                    "cumulative": {
+                        "max_risk": state.get("max_risk", analysis.get("risk_score", 0)),
+                        "all_indicators": sorted(state.get("all_indicators", set())),
+                    },
                 }
                 event_hub.publish("VOICE_CALL_TRANSCRIPT", payload)
             except Exception as analysis_err:

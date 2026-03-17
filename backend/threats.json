@@ -1,5 +1,24 @@
 [
   {
+    "id": 12,
+    "url": "http://secure-login-update.tk/",
+    "safe": false,
+    "riskScore": 84,
+    "confidence": 0.66,
+    "reasons": [
+      "Uses suspicious top-level domain \".tk\" \u2014 frequently abused for phishing",
+      "Contains suspicious keywords: login, secure, update \u2014 common in phishing URLs",
+      "Uses HTTP instead of HTTPS \u2014 connection is not encrypted and insecure"
+    ],
+    "category": "high_risk",
+    "timestamp": "2026-03-17T11:05:18.502039",
+    "phishTank": {
+      "inDatabase": false,
+      "isPhish": false,
+      "phishDetailUrl": null
+    }
+  },
+  {
     "id": 11,
     "url": "http://secure-login-update.tk/",
     "safe": false,

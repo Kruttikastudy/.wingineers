@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # CORS — comma-separated origins (set via env var for production)
-    CORS_ORIGINS: str = "chrome-extension://*,http://localhost:5173,http://localhost:8000"
+    CORS_ORIGINS: str = "chrome-extension://*,http://localhost:5173,http://localhost:8000,https://wingineers.vercel.app"
 
     # Featherless.ai LLM Settings
     FEATHERLESS_API_KEY: str = ""

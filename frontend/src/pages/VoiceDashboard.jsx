@@ -77,6 +77,10 @@ export default function VoiceDashboard() {
       }
     };
 
+    eventSource.onerror = (err) => {
+      console.error("SSE connection error:", err);
+    };
+
     const staleInterval = setInterval(() => {
       const now = Date.now();
       setLiveCalls((prev) => {

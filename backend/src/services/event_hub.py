@@ -13,8 +13,11 @@ class EventHub:
         self.subscribers.append(queue)
         try:
             while True:
-                msg = await queue.get()
-                yield f"data: {msg}\n\n"
+                try:
+                    msg = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    yield f"data: {msg}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": heartbeat\n\n"
         finally:
             self.subscribers.remove(queue)
 
