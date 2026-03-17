@@ -193,7 +193,7 @@ class DeepfakeDetector:
                 "error": str(e),
             }
 
-    def detect_video_deepfake(self, video_path: str, sample_frames: int = 10) -> Dict[str, Any]:
+    def detect_video_deepfake(self, video_path: str, sample_frames: int = 16) -> Dict[str, Any]:
         """
         Detect deepfake in video file using HuggingFace model on frames.
 
@@ -269,25 +269,49 @@ class DeepfakeDetector:
                     "message": "No deepfake features detected in video",
                 }
 
-            # Calculate statistics
-            avg_score = np.mean(deepfake_scores)
-            std_score = np.std(deepfake_scores)
-            max_score = np.max(deepfake_scores)
+            # Robust scoring: combine mean and median, dampen outliers
+            scores_arr = np.array(deepfake_scores)
+            avg_score = float(np.mean(scores_arr))
+            median_score = float(np.median(scores_arr))
+            std_score = float(np.std(scores_arr))
+            max_score = float(np.max(scores_arr))
 
-            # Threshold for deepfake detection
-            threshold = 0.5
-            is_deepfake = bool(avg_score > threshold)
+            # Use weighted blend of mean and median for outlier resistance
+            robust_score = 0.4 * avg_score + 0.6 * median_score
+
+            # Inter-quartile agreement: if >75% of frames agree, boost confidence
+            fake_votes = np.sum(scores_arr > 0.5)
+            real_votes = np.sum(scores_arr <= 0.5)
+            agreement_ratio = max(fake_votes, real_votes) / len(scores_arr)
+
+            # Dynamic threshold based on agreement
+            if agreement_ratio > 0.8:
+                threshold = 0.45  # Strong agreement → be more decisive
+            elif agreement_ratio < 0.6:
+                threshold = 0.55  # Weak agreement → be more cautious
+            else:
+                threshold = 0.50
+
+            is_deepfake = bool(robust_score > threshold)
+
+            # Confidence: directional distance from threshold, scaled by agreement
+            raw_conf = abs(robust_score - threshold) / (1.0 - threshold if robust_score > threshold else threshold)
+            confidence = float(min(raw_conf * agreement_ratio + 0.5, 1.0))
 
             model_name = "prithivMLmods/Deep-Fake-Detector-v2-Model" if use_model else "face_analysis"
 
             return {
                 "is_deepfake": is_deepfake,
-                "confidence": float(max(avg_score, 1 - avg_score)),
-                "average_score": float(avg_score),
-                "max_score": float(max_score),
-                "std_score": float(std_score),
+                "confidence": confidence,
+                "average_score": avg_score,
+                "median_score": median_score,
+                "robust_score": float(robust_score),
+                "max_score": max_score,
+                "std_score": std_score,
+                "agreement_ratio": float(agreement_ratio),
                 "frames_analyzed": int(analyzed_frames),
                 "total_frames": int(frame_count),
+                "frame_scores": [float(s) for s in scores_arr],
                 "duration_seconds": float(frame_count / fps if fps > 0 else 0),
                 "model": model_name,
                 "message": "Video deepfake detection completed",
@@ -381,7 +405,11 @@ class DeepfakeDetector:
 
 
     def _classify_frame_with_model(self, frame) -> float:
-        """Classify a frame using HuggingFace model."""
+        """Classify a frame using HuggingFace model.
+        
+        Dynamically resolves which output index corresponds to 'fake'
+        using the model's id2label config, rather than hardcoding an index.
+        """
         from PIL import Image
 
         try:
@@ -402,13 +430,45 @@ class DeepfakeDetector:
             # Get probabilities
             probs = torch.softmax(logits, dim=-1)
 
-            # Assuming class 1 is fake, class 0 is real
-            fake_prob = probs[0, 1].item()
+            # Resolve fake label index from model config
+            fake_idx = self._get_fake_label_index(model)
+            fake_prob = probs[0, fake_idx].item()
 
             return float(fake_prob)
         except Exception as e:
             logger.warning(f"Could not classify frame with model: {e}")
             raise
+
+    def _get_fake_label_index(self, model) -> int:
+        """Find which output index corresponds to 'fake' / 'deepfake' label.
+        
+        Uses the model's id2label config to dynamically resolve the correct
+        index. Falls back to index 0 if no match is found (since many models
+        use 0=Fake, 1=Real).
+        """
+        # Cache the result on the instance
+        if hasattr(self, '_fake_label_idx') and self._fake_label_idx is not None:
+            return self._fake_label_idx
+
+        id2label = getattr(model.config, 'id2label', {})
+        logger.info(f"Model id2label mapping: {id2label}")
+
+        for idx, label in id2label.items():
+            idx = int(idx)
+            label_lower = label.lower()
+            if 'fake' in label_lower or 'manipulated' in label_lower or 'synthetic' in label_lower:
+                logger.info(f"Resolved fake label: index={idx}, label='{label}'")
+                self._fake_label_idx = idx
+                return idx
+
+        # Default fallback — index 0 for models like Deep-Fake-Detector-v2
+        # where 0=Fake, 1=Real
+        logger.warning(
+            f"Could not find 'fake' label in id2label={id2label}. "
+            f"Defaulting to index 0."
+        )
+        self._fake_label_idx = 0
+        return 0
 
     def _detect_faces(self, frame):
         """Detect faces in a frame using cascade classifier."""

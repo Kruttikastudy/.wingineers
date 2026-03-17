@@ -5,7 +5,7 @@
  */
 
 (function () {
-  const API_BASE = "http://localhost:8000";
+  const API_BASE = "https://sakshat193-wingineers-backend.hf.space"; // Local dev: "http://localhost:8000"
 
   const params = new URLSearchParams(window.location.search);
   const url = params.get('url') || 'Unknown URL';

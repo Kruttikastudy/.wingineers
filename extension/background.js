@@ -3,7 +3,7 @@
  * Intercepts navigations and checks URLs against the backend API.
  */
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://sakshat193-wingineers-backend.hf.space"; // Local dev: "http://localhost:8000"
 const RISK_THRESHOLD = 40; // Score at which we block
 const PROMPT_INJECTION_THRESHOLD = 25; // Score at which we flag prompt injections
 
@@ -507,6 +507,9 @@ function inferMediaType(url) {
  * Open deepfake result modal window
  */
 function openDeepfakeResultModal(mediaUrl, mediaType) {
+  // Clear any stale result so the new window doesn't flash the old one
+  pendingDeepfakeResult = null;
+
   // Close previous window if exists
   if (deepfakeResultWindow && deepfakeResultWindow.id) {
     chrome.windows.remove(deepfakeResultWindow.id).catch((err) => {

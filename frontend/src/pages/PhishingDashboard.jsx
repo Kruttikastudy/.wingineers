@@ -39,7 +39,7 @@ import {
   Code2,
 } from "lucide-react";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 const RISK_LEVELS = {
   high_risk: {

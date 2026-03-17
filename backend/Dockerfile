@@ -1,5 +1,11 @@
 FROM python:3.11-slim
 
+# Install system dependencies for opencv-headless and audio processing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsndfile1 \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
@@ -7,7 +13,7 @@ ENV PATH="/home/user/.local/bin:$PATH"
 WORKDIR /app
 
 COPY --chown=user ./requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 COPY --chown=user . /app
 

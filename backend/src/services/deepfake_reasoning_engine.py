@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # ── Adaptive scoring parameters ──────────────────────────────────────────────
 SIGMOID_STEEPNESS = 8       # k — how aggressively the sigmoid separates fake/real
-BASE_DEAD_ZONE = 0.12       # half-width of the inconclusive zone around 0.5
+BASE_DEAD_ZONE = 0.15       # half-width of the inconclusive zone around 0.5
 MAX_LLM_NUDGE = 0.08        # ±8% max influence from LLM on confidence
 
 
@@ -128,10 +128,13 @@ async def analyze_with_reasoning(
 
     # ── Step 1: Extract ML signals ────────────────────────────────────────
     avg_score = detection_result.get(
-        "average_score",
-        detection_result.get("score",
-            detection_result.get("anomaly_score",
-                detection_result.get("confidence", 0.5)
+        "robust_score",
+        detection_result.get(
+            "average_score",
+            detection_result.get("score",
+                detection_result.get("anomaly_score",
+                    detection_result.get("confidence", 0.5)
+                )
             )
         )
     )

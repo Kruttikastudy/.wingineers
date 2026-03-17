@@ -1,4 +1,7 @@
 .env
-__pycache__
+__pycache__/
+**/__pycache__/
 venv
+.venv
 test_data
+*.pyc

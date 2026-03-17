@@ -2,11 +2,14 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
-    API_PORT: int = 8000
+    API_PORT: int = 7860  # HF Spaces default port
     DEBUG: bool = False
     DEVICE: str = "cpu"
     LOAD_DEEPFAKE_MODELS: bool = True
     LOG_LEVEL: str = "INFO"
+
+    # CORS — comma-separated origins (set via env var for production)
+    CORS_ORIGINS: str = "chrome-extension://*,http://localhost:5173,http://localhost:8000"
 
     # Featherless.ai LLM Settings
     FEATHERLESS_API_KEY: str = ""
