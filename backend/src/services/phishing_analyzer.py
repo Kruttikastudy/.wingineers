@@ -239,7 +239,7 @@ async def check_phishtank(url_string: str, api_key: Optional[str] = None) -> Opt
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                'http://checkurl.staging.phishtank.com/checkurl/',
+                'https://checkurl.phishtank.com/checkurl/',
                 data=params,
                 headers={'User-Agent': 'phishtank/wingineers'},
                 timeout=aiohttp.ClientTimeout(total=5)

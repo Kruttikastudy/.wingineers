@@ -30,7 +30,7 @@ async def validate_model() -> bool:
     try:
         import aiohttp
 
-        headers = {"Authorization": f"Bearer {settings.FEATHERLESS_API_KEY}"}
+        headers = {"Authorization": f"Bearer {settings.FEATHERLESS_API_KEY.strip()}"}
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 "https://api.featherless.ai/v1/models",
@@ -188,7 +188,7 @@ async def analyze_with_llm(
         import aiohttp
 
         headers = {
-            "Authorization": f"Bearer {settings.FEATHERLESS_API_KEY}",
+            "Authorization": f"Bearer {settings.FEATHERLESS_API_KEY.strip()}",
             "Content-Type": "application/json",
         }
 
