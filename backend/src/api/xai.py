@@ -265,19 +265,28 @@ async def explain_deepfake(request: DeepfakeExplainRequest):
         details = request.details or {}
 
         # Compute risk score (0-100)
+        # "Likely not Deepfake" is the inconclusive/borderline verdict from the
+        # reasoning engine. It means the ML signal was ambiguous — map it to
+        # LOW risk, not the misleading default of 50 (which rendered as HIGH).
         if verdict == "DEEPFAKE":
             risk_score = int(min(confidence * 100, 100))
         elif verdict == "AUTHENTIC":
-            risk_score = int(max((1 - confidence) * 100, 0))
+            # Confident authentic → near 0 risk
+            risk_score = int(max((1 - confidence) * 15, 0))
+        elif verdict in ("Likely not Deepfake", "INCONCLUSIVE"):
+            # Borderline / inconclusive — low risk, not mid-risk
+            risk_score = int(20 + (1 - confidence) * 10)   # 20-30 range
         else:
-            risk_score = 50
+            risk_score = 25  # unknown verdicts → low-medium
 
-        # Severity mapping
-        if risk_score >= 70:
+        risk_score = max(0, min(risk_score, 100))
+
+        # Severity mapping (tightened — old mapping made borderline = HIGH)
+        if risk_score >= 75:
             severity = "CRITICAL"
-        elif risk_score >= 50:
+        elif risk_score >= 55:
             severity = "HIGH"
-        elif risk_score >= 30:
+        elif risk_score >= 35:
             severity = "MODERATE"
         else:
             severity = "LOW"

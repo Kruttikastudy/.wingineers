@@ -298,8 +298,12 @@ async def detect_image_deepfake(file: UploadFile = File(...)):
 
     temp_file = None
     try:
-        # Save uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".image") as tmp:
+        # Save uploaded file temporarily — preserve real extension so cv2.imread
+        # can use format hints and avoid silent read failures for WEBP/AVIF.
+        file_suffix = Path(file.filename).suffix.lower() if file.filename else ".jpg"
+        if file_suffix not in {".jpg", ".jpeg", ".png", ".webp", ".avif"}:
+            file_suffix = ".jpg"
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_suffix) as tmp:
             contents = await file.read()
             tmp.write(contents)
             temp_file = tmp.name

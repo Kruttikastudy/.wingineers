@@ -138,6 +138,13 @@ function displayResult(analysis) {
     color = "authentic";
     subtitle = reasoning ||
       "This media appears to be genuine with no obvious signs of manipulation.";
+  } else if (verdict === "Likely not Deepfake") {
+    // Explicit handling for borderline/inconclusive ML verdict
+    // This is NOT a high-confidence authentic result — it means the signal was ambiguous.
+    message = "Likely Not Deepfake";
+    color = "inconclusive";
+    subtitle = reasoning ||
+      "The analysis signals are borderline. This media is probably not a deepfake, but the confidence is limited. Consider verifying with the original source.";
   } else {
     message = "Inconclusive";
     color = "inconclusive";
@@ -185,6 +192,41 @@ function displayResult(analysis) {
   if (analysis.analysisTime) {
     const timeSeconds = (analysis.analysisTime / 1000).toFixed(1);
     addDetailItem("Analysis Time", `${timeSeconds}s`);
+  }
+
+  // --- Image uncertainty banner (always shown for image media) ---
+  // Single images inherently have less signal than multi-frame video analysis.
+  // Remind the user of this limitation regardless of verdict.
+  const mediaType = analysis.mediaType || (data.details && data.details.model && !data.details.frames_analyzed ? "image" : null);
+  const isImageAnalysis = mediaType === "image" || (data.details && data.details.score !== undefined && data.details.frames_analyzed === undefined);
+  if (isImageAnalysis) {
+    const existingBanner = document.getElementById("imageCaution");
+    if (!existingBanner) {
+      const banner = document.createElement("div");
+      banner.id = "imageCaution";
+      banner.style.cssText = [
+        "margin: 12px 0 0 0",
+        "padding: 10px 14px",
+        "border-radius: 8px",
+        "background: rgba(251, 191, 36, 0.12)",
+        "border: 1px solid rgba(251, 191, 36, 0.35)",
+        "color: #fbbf24",
+        "font-size: 12px",
+        "line-height: 1.5",
+        "display: flex",
+        "gap: 8px",
+        "align-items: flex-start",
+      ].join(";");
+      banner.innerHTML = `
+        <span style="font-size:15px;flex-shrink:0;">⚠️</span>
+        <span><strong>Single image analysis</strong> — Images provide less signal than videos.
+        For higher confidence, upload the source video or multiple frames.
+        If this is a public figure's photo, professional lighting may trigger false positives.</span>
+      `;
+      // Insert after the details card or subtitle
+      const insertAfter = detailsCard.classList.contains("hidden") ? verdictSubtitle : detailsCard;
+      insertAfter.parentNode.insertBefore(banner, insertAfter.nextSibling);
+    }
   }
 
   // Fetch XAI explanation

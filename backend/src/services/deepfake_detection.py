@@ -63,16 +63,27 @@ class DeepfakeDetector:
             return None
 
     def _load_video_model(self):
-        """Load video deepfake detection model from HuggingFace."""
+        """Load primary video deepfake detection model from HuggingFace.
+
+        Primary: Wvolf/ViT_Deepfake_Detection
+          — Fine-tuned ViT on a balanced real/fake dataset; less prone to
+            false positives on professional photography.
+        Fallback: prithivMLmods/Deep-Fake-Detector-v2-Model
+          — More aggressive GAN-focused detector, useful when primary unavailable.
+        """
         try:
             from transformers import AutoImageProcessor, AutoModelForImageClassification
 
-            # Using Deep-Fake-Detector-v2 for frame-based detection
-            model_name = "prithivMLmods/Deep-Fake-Detector-v2-Model"
-            logger.info(f"Loading video model: {model_name}")
+            # PRIMARY: Wvolf model — less biased toward studio/pro photography
+            model_name = "Wvolf/ViT_Deepfake_Detection"
+            logger.info(f"Loading primary video model: {model_name}")
 
             processor = AutoImageProcessor.from_pretrained(model_name)
             model = AutoModelForImageClassification.from_pretrained(model_name)
+
+            # Log id2label at startup for debugging
+            id2label = getattr(model.config, 'id2label', {})
+            logger.info(f"[Model] {model_name} id2label: {id2label}")
 
             return {
                 "processor": processor,
@@ -80,19 +91,23 @@ class DeepfakeDetector:
                 "model_name": model_name,
             }
         except Exception as e:
-            logger.warning(f"Could not load video model: {e}. Trying alternative...")
+            logger.warning(f"Could not load primary video model: {e}. Trying fallback...")
             return self._load_video_model_fallback()
 
     def _load_video_model_fallback(self):
-        """Load fallback video model."""
+        """Load fallback video model (prithivMLmods/Deep-Fake-Detector-v2-Model)."""
         try:
             from transformers import AutoImageProcessor, AutoModelForImageClassification
 
-            model_name = "Wvolf/ViT_Deepfake_Detection"
+            model_name = "prithivMLmods/Deep-Fake-Detector-v2-Model"
             logger.info(f"Loading fallback video model: {model_name}")
 
             processor = AutoImageProcessor.from_pretrained(model_name)
             model = AutoModelForImageClassification.from_pretrained(model_name)
+
+            # Log id2label at startup for debugging
+            id2label = getattr(model.config, 'id2label', {})
+            logger.info(f"[Model] {model_name} id2label: {id2label}")
 
             return {
                 "processor": processor,
@@ -359,13 +374,18 @@ class DeepfakeDetector:
                 try:
                     score = self._classify_frame_with_model(frame)
                     is_deepfake = bool(score > 0.5)
-                    confidence = float(max(score, 1 - score))
 
+                    logger.info(
+                        f"[ImageDetect] raw fake_prob={score:.4f}, "
+                        f"model={self.video_model.get('model_name', 'unknown')}"
+                    )
+
+                    # Return raw score only — let the reasoning engine compute
+                    # directional confidence. Do NOT pre-inflate with max(s, 1-s).
                     return {
                         "is_deepfake": is_deepfake,
-                        "confidence": confidence,
-                        "score": score,
-                        "model": self.video_model.get("model_name", "prithivMLmods/Deep-Fake-Detector-v2-Model"),
+                        "score": float(score),
+                        "model": self.video_model.get("model_name", "Wvolf/ViT_Deepfake_Detection"),
                         "message": "Image deepfake detection completed",
                     }
                 except Exception as e:
@@ -441,31 +461,43 @@ class DeepfakeDetector:
 
     def _get_fake_label_index(self, model) -> int:
         """Find which output index corresponds to 'fake' / 'deepfake' label.
-        
+
         Uses the model's id2label config to dynamically resolve the correct
-        index. Falls back to index 0 if no match is found (since many models
-        use 0=Fake, 1=Real).
+        index. Falls back to index 0 if no match is found.
+
+        Known mappings:
+          prithivMLmods/Deep-Fake-Detector-v2-Model: {0: 'Deepfake', 1: 'Realism'}
+          Wvolf/ViT_Deepfake_Detection:              {0: 'fake',     1: 'real'}
+        Both use index 0 = fake, so fallback to 0 is correct for these models.
         """
         # Cache the result on the instance
         if hasattr(self, '_fake_label_idx') and self._fake_label_idx is not None:
             return self._fake_label_idx
 
         id2label = getattr(model.config, 'id2label', {})
-        logger.info(f"Model id2label mapping: {id2label}")
+        logger.info(f"[LabelResolve] Model id2label mapping: {id2label}")
+
+        # Guard: empty id2label is a model load failure signal
+        if not id2label:
+            logger.error(
+                "[LabelResolve] id2label is EMPTY — model may not have loaded correctly. "
+                "Label resolution is unreliable. Defaulting to index 0."
+            )
+            self._fake_label_idx = 0
+            return 0
 
         for idx, label in id2label.items():
             idx = int(idx)
             label_lower = label.lower()
-            if 'fake' in label_lower or 'manipulated' in label_lower or 'synthetic' in label_lower:
-                logger.info(f"Resolved fake label: index={idx}, label='{label}'")
+            if 'fake' in label_lower or 'manipulated' in label_lower or 'synthetic' in label_lower or 'deepfake' in label_lower:
+                logger.info(f"[LabelResolve] Resolved fake label: index={idx}, label='{label}'")
                 self._fake_label_idx = idx
                 return idx
 
-        # Default fallback — index 0 for models like Deep-Fake-Detector-v2
-        # where 0=Fake, 1=Real
+        # Fallback: index 0 is correct for both known models
         logger.warning(
-            f"Could not find 'fake' label in id2label={id2label}. "
-            f"Defaulting to index 0."
+            f"[LabelResolve] Could not find 'fake' label in id2label={id2label}. "
+            f"Defaulting to index 0 (correct for known ViT deepfake models)."
         )
         self._fake_label_idx = 0
         return 0

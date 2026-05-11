@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 # ── Adaptive scoring parameters ──────────────────────────────────────────────
 SIGMOID_STEEPNESS = 8       # k — how aggressively the sigmoid separates fake/real
 BASE_DEAD_ZONE = 0.15       # half-width of the inconclusive zone around 0.5
-MAX_LLM_NUDGE = 0.08        # ±8% max influence from LLM on confidence
+IMAGE_DEAD_ZONE = 0.20      # wider dead zone for single-frame images (less signal)
+MAX_LLM_NUDGE = 0.08        # ±8% max influence from LLM on confidence (video/audio)
+IMAGE_LLM_NUDGE = 0.04     # ±4% for images — single frame = less LLM context
 
 
 def _signal_quality(
@@ -56,14 +58,17 @@ def _sigmoid_confidence(avg_score: float, quality: float) -> float:
     return min(confidence, 1.0)
 
 
-def _adaptive_verdict(avg_score: float, quality: float) -> str:
+def _adaptive_verdict(avg_score: float, quality: float, media_type: str = "unknown") -> str:
     """
     Determine verdict using a dead-zone that adapts to signal quality.
 
     Poor quality → wider inconclusive zone (more cautious).
     High quality → narrower zone (more decisive).
+    Images use a wider base dead zone (IMAGE_DEAD_ZONE) since a single frame
+    provides much less signal than a multi-frame video analysis.
     """
-    adjusted_dz = BASE_DEAD_ZONE * (1.5 - 0.5 * quality)
+    base_dz = IMAGE_DEAD_ZONE if media_type == "image" else BASE_DEAD_ZONE
+    adjusted_dz = base_dz * (1.5 - 0.5 * quality)
 
     if avg_score > 0.5 + adjusted_dz:
         return "DEEPFAKE"
@@ -77,15 +82,21 @@ def _apply_llm_nudge(
     confidence: float,
     ml_verdict: str,
     llm_result: Optional[Dict[str, Any]],
+    media_type: str = "unknown",
 ) -> tuple[float, bool]:
     """
     Bayesian-style nudge: LLM can adjust confidence by up to ±MAX_LLM_NUDGE
     but CANNOT flip the verdict.
 
+    For images, the nudge is halved (IMAGE_LLM_NUDGE) because a single frame
+    provides far less context than a multi-frame video.
+
     Returns (adjusted_confidence, llm_agrees).
     """
     if not llm_result:
         return confidence, True
+
+    max_nudge = IMAGE_LLM_NUDGE if media_type == "image" else MAX_LLM_NUDGE
 
     llm_verdict = llm_result.get("verdict", "INCONCLUSIVE")
     llm_conf_factor = llm_result.get("confidence", 50) / 100.0
@@ -97,9 +108,9 @@ def _apply_llm_nudge(
     )
 
     if agrees:
-        confidence += MAX_LLM_NUDGE * llm_conf_factor  # reinforce
+        confidence += max_nudge * llm_conf_factor  # reinforce
     else:
-        confidence -= MAX_LLM_NUDGE * 0.5  # slight doubt, bounded
+        confidence -= max_nudge * 0.5  # slight doubt, bounded
         logger.warning(
             f"[Reasoning] ML/LLM DISAGREE — ML={ml_verdict}, "
             f"LLM={llm_verdict} ({llm_conf_factor:.0%}). "
@@ -145,7 +156,7 @@ async def analyze_with_reasoning(
     # ── Step 2: Compute signal quality & sigmoid confidence ───────────────
     quality = _signal_quality(std_score, frames_analyzed, total_frames)
     confidence = _sigmoid_confidence(avg_score, quality)
-    ml_verdict = _adaptive_verdict(avg_score, quality)
+    ml_verdict = _adaptive_verdict(avg_score, quality, media_type=media_type)
 
     # ── Step 3: Run LLM for reasoning (non-blocking) ─────────────────────
     llm_result = None
@@ -156,7 +167,7 @@ async def analyze_with_reasoning(
         logger.warning(f"[Reasoning] LLM analysis failed: {e}")
 
     # ── Step 4: Bayesian LLM nudge ────────────────────────────────────────
-    confidence, llm_agrees = _apply_llm_nudge(confidence, ml_verdict, llm_result)
+    confidence, llm_agrees = _apply_llm_nudge(confidence, ml_verdict, llm_result, media_type=media_type)
 
     # ── Step 5: Map verdict → is_deepfake ─────────────────────────────────
     if ml_verdict == "DEEPFAKE":
