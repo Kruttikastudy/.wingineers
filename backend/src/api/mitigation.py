@@ -235,24 +235,20 @@ def _generate_fallback_report(aggregated: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-async def _call_llm(aggregated: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Call Featherless LLM to generate mitigation report."""
-    if not settings.FEATHERLESS_API_KEY:
-        logger.warning("[Mitigation] No FEATHERLESS_API_KEY — using fallback report")
-        return None
-
+async def _call_llm_with_key(api_key: str, model: str, aggregated: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Attempt a single LLM call with the given key. Returns parsed report or None."""
     user_prompt = (
         "Generate a comprehensive mitigation report based on this aggregated threat intelligence data:\n\n"
         + json.dumps(aggregated, indent=2)
     )
 
     headers = {
-        "Authorization": f"Bearer {settings.FEATHERLESS_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
     payload = {
-        "model": settings.FEATHERLESS_MODEL,
+        "model": model,
         "messages": [
             {"role": "system", "content": MITIGATION_SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
@@ -267,7 +263,7 @@ async def _call_llm(aggregated: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
-                    "https://api.featherless.ai/v1/chat/completions",
+                    "https://api.groq.com/openai/v1/chat/completions",
                     headers=headers,
                     json=payload,
                     timeout=aiohttp.ClientTimeout(total=_LLM_TIMEOUT),
@@ -314,6 +310,32 @@ async def _call_llm(aggregated: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         except (json.JSONDecodeError, KeyError, ValueError) as e:
             logger.warning(f"[Mitigation] LLM response parse error: {e}")
             return None
+
+    return None
+
+
+async def _call_llm(aggregated: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Call Groq LLM to generate mitigation report. Tries primary key, then backup."""
+    primary_key = (settings.GROQ_API_KEY or settings.FEATHERLESS_API_KEY or "").strip()
+    backup_key = (settings.GROQ_BACKUP_API_KEY or "").strip()
+    model = (settings.GROQ_MODEL or settings.FEATHERLESS_MODEL or "llama-3.1-8b-instant").strip()
+
+    if not primary_key and not backup_key:
+        logger.warning("[Mitigation] No GROQ_API_KEY — using fallback report")
+        return None
+
+    # Try primary key
+    if primary_key:
+        result = await _call_llm_with_key(primary_key, model, aggregated)
+        if result:
+            return result
+
+    # Fallback to backup key
+    if backup_key:
+        logger.info("[Mitigation] Primary key failed, trying backup Groq key...")
+        result = await _call_llm_with_key(backup_key, model, aggregated)
+        if result:
+            return result
 
     return None
 

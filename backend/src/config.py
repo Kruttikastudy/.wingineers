@@ -11,9 +11,14 @@ class Settings(BaseSettings):
     # CORS — comma-separated origins (set via env var for production)
     CORS_ORIGINS: str = "chrome-extension://*,http://localhost:5173,http://localhost:8000,https://wingineers.vercel.app"
 
-    # Featherless.ai LLM Settings
+    # Groq LLM Settings (OpenAI-compatible API)
+    GROQ_API_KEY: str = ""
+    GROQ_BACKUP_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.1-8b-instant"
+
+    # Legacy aliases — kept so existing env vars still work
     FEATHERLESS_API_KEY: str = ""
-    FEATHERLESS_MODEL: str = "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    FEATHERLESS_MODEL: str = ""
 
     # Twilio Settings
     TWILIO_AUTH_TOKEN: str = "your_twilio_auth_token_here"

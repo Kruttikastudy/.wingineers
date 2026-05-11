@@ -1,8 +1,10 @@
 """
-Featherless.ai LLM Service — Serverless AI Reasoning for Deepfake Detection
+Groq LLM Service — Serverless AI Reasoning for Deepfake Detection
 
-Uses the Featherless.ai OpenAI-compatible API to provide intelligent
+Uses the Groq OpenAI-compatible API to provide intelligent
 reasoning and calibrated confidence scoring for deepfake detection results.
+
+Supports a backup API key that is tried when the primary key fails.
 """
 
 import json
@@ -18,22 +20,42 @@ _llm_cache: OrderedDict[str, Dict[str, Any]] = OrderedDict()
 _CACHE_MAX = 50
 _LLM_TIMEOUT = 15  # seconds
 
+GROQ_API_BASE = "https://api.groq.com/openai/v1"
+
+
+def _get_api_key() -> str:
+    """Return the primary Groq key, falling back to the legacy Featherless key."""
+    from ..config import settings
+    return (settings.GROQ_API_KEY or settings.FEATHERLESS_API_KEY or "").strip()
+
+
+def _get_backup_api_key() -> str:
+    """Return the backup Groq key."""
+    from ..config import settings
+    return (settings.GROQ_BACKUP_API_KEY or "").strip()
+
+
+def _get_model() -> str:
+    """Return the configured model, falling back to legacy Featherless model."""
+    from ..config import settings
+    return (settings.GROQ_MODEL or settings.FEATHERLESS_MODEL or "llama-3.1-8b-instant").strip()
+
 
 async def validate_model() -> bool:
-    """Validate that the configured Featherless model is available. Call at startup."""
-    from ..config import settings
+    """Validate that the configured Groq model is available. Call at startup."""
+    api_key = _get_api_key()
 
-    if not settings.FEATHERLESS_API_KEY:
-        logger.info("[LLM] No FEATHERLESS_API_KEY — skipping model validation")
+    if not api_key:
+        logger.info("[LLM] No GROQ_API_KEY — skipping model validation")
         return False
 
     try:
         import aiohttp
 
-        headers = {"Authorization": f"Bearer {settings.FEATHERLESS_API_KEY.strip()}"}
+        headers = {"Authorization": f"Bearer {api_key}"}
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                "https://api.featherless.ai/v1/models",
+                f"{GROQ_API_BASE}/models",
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=10),
             ) as response:
@@ -46,15 +68,16 @@ async def validate_model() -> bool:
 
                 data = await response.json()
                 model_ids = {m["id"] for m in data.get("data", [])}
-                if settings.FEATHERLESS_MODEL not in model_ids:
+                model = _get_model()
+                if model not in model_ids:
                     logger.error(
-                        f"[LLM] FEATHERLESS_MODEL '{settings.FEATHERLESS_MODEL}' "
-                        f"not found on Featherless.ai. LLM reasoning will be unavailable. "
-                        f"Check https://featherless.ai/models for valid model IDs."
+                        f"[LLM] GROQ_MODEL '{model}' "
+                        f"not found on Groq. LLM reasoning will be unavailable. "
+                        f"Check https://console.groq.com/docs/models for valid model IDs."
                     )
                     return False
 
-        logger.info(f"[LLM] Model validated: {settings.FEATHERLESS_MODEL}")
+        logger.info(f"[LLM] Model validated: {_get_model()} (Groq)")
         return True
     except Exception as e:
         logger.error(f"[LLM] Model validation request failed: {e}")
@@ -152,12 +175,85 @@ def _get_cache_key(signals: str) -> str:
     return hashlib.md5(signals.encode()).hexdigest()
 
 
+async def _make_groq_request(
+    api_key: str,
+    model: str,
+    messages: list,
+    temperature: float = 0.1,
+    max_tokens: int = 500,
+) -> Optional[Dict[str, Any]]:
+    """Make a single request to Groq API. Returns parsed JSON response or None."""
+    import aiohttp
+    import asyncio
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "response_format": {"type": "json_object"},
+    }
+
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{GROQ_API_BASE}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=_LLM_TIMEOUT),
+                ) as response:
+                    if response.status == 429 or response.status >= 500:
+                        error_text = await response.text()
+                        logger.warning(
+                            f"[LLM] Retryable error {response.status} "
+                            f"(attempt {attempt + 1}/{max_retries + 1}): {error_text[:200]}"
+                        )
+                        if attempt < max_retries:
+                            await asyncio.sleep(1 * (2 ** attempt))
+                            continue
+                        return None
+
+                    if response.status != 200:
+                        error_text = await response.text()
+                        logger.warning(f"[LLM] API returned {response.status}: {error_text[:200]}")
+                        return None
+
+                    data = await response.json()
+                    return data
+
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"[LLM] Request timed out (attempt {attempt + 1}/{max_retries + 1})"
+            )
+            if attempt < max_retries:
+                await asyncio.sleep(1 * (2 ** attempt))
+                continue
+            return None
+        except Exception as e:
+            logger.warning(
+                f"[LLM] Network error (attempt {attempt + 1}/{max_retries + 1}): {e}"
+            )
+            if attempt < max_retries:
+                await asyncio.sleep(1 * (2 ** attempt))
+                continue
+            return None
+
+    return None
+
+
 async def analyze_with_llm(
     detection_result: Dict[str, Any],
     media_type: str = "unknown"
 ) -> Optional[Dict[str, Any]]:
     """
-    Send detection signals to Featherless.ai LLM for intelligent reasoning.
+    Send detection signals to Groq LLM for intelligent reasoning.
 
     Args:
         detection_result: Raw detection result from DeepfakeDetector
@@ -167,10 +263,11 @@ async def analyze_with_llm(
         LLM analysis dict with verdict, confidence, reasoning, key_factors
         or None if LLM is unavailable
     """
-    from ..config import settings
+    primary_key = _get_api_key()
+    backup_key = _get_backup_api_key()
 
-    if not settings.FEATHERLESS_API_KEY:
-        logger.warning("[LLM] No FEATHERLESS_API_KEY configured — skipping LLM reasoning")
+    if not primary_key and not backup_key:
+        logger.warning("[LLM] No GROQ_API_KEY configured — skipping LLM reasoning")
         return None
 
     # Build prompt
@@ -183,76 +280,29 @@ async def analyze_with_llm(
         _llm_cache.move_to_end(cache_key)
         return _llm_cache[cache_key]
 
+    model = _get_model()
+    messages = [
+        {"role": "system", "content": DEEPFAKE_SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    logger.info(f"[LLM] Querying Groq ({model})...")
+
+    # Try primary key first
+    data = None
+    if primary_key:
+        data = await _make_groq_request(primary_key, model, messages)
+
+    # Fallback to backup key
+    if data is None and backup_key:
+        logger.info("[LLM] Primary key failed, trying backup Groq key...")
+        data = await _make_groq_request(backup_key, model, messages)
+
+    if data is None:
+        logger.warning("[LLM] All Groq API keys exhausted — no LLM reasoning available")
+        return None
+
     try:
-        import asyncio
-        import aiohttp
-
-        headers = {
-            "Authorization": f"Bearer {settings.FEATHERLESS_API_KEY.strip()}",
-            "Content-Type": "application/json",
-        }
-
-        payload = {
-            "model": settings.FEATHERLESS_MODEL,
-            "messages": [
-                {"role": "system", "content": DEEPFAKE_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": 0.1,
-            "max_tokens": 500,
-            "response_format": {"type": "json_object"},
-        }
-
-        logger.info(f"[LLM] Querying Featherless.ai ({settings.FEATHERLESS_MODEL})...")
-
-        max_retries = 2
-        last_error = None
-        for attempt in range(max_retries + 1):
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        "https://api.featherless.ai/v1/chat/completions",
-                        headers=headers,
-                        json=payload,
-                        timeout=aiohttp.ClientTimeout(total=_LLM_TIMEOUT),
-                    ) as response:
-                        if response.status == 429 or response.status >= 500:
-                            error_text = await response.text()
-                            logger.warning(
-                                f"[LLM] Retryable error {response.status} "
-                                f"(attempt {attempt + 1}/{max_retries + 1}): {error_text[:200]}"
-                            )
-                            if attempt < max_retries:
-                                await asyncio.sleep(1 * (2 ** attempt))
-                                continue
-                            return None
-
-                        if response.status != 200:
-                            error_text = await response.text()
-                            logger.warning(f"[LLM] API returned {response.status}: {error_text[:200]}")
-                            return None
-
-                        data = await response.json()
-                        break  # success
-            except asyncio.TimeoutError:
-                logger.warning(
-                    f"[LLM] Request timed out (attempt {attempt + 1}/{max_retries + 1})"
-                )
-                last_error = "timeout"
-                if attempt < max_retries:
-                    await asyncio.sleep(1 * (2 ** attempt))
-                    continue
-                return None
-            except aiohttp.ClientError as e:
-                logger.warning(
-                    f"[LLM] Network error (attempt {attempt + 1}/{max_retries + 1}): {e}"
-                )
-                last_error = str(e)
-                if attempt < max_retries:
-                    await asyncio.sleep(1 * (2 ** attempt))
-                    continue
-                return None
-
         # Parse response
         content = data["choices"][0]["message"]["content"]
         llm_result = json.loads(content)
@@ -285,5 +335,5 @@ async def analyze_with_llm(
         logger.warning(f"[LLM] Failed to parse LLM response as JSON: {e}")
         return None
     except Exception as e:
-        logger.warning(f"[LLM] Featherless.ai request failed: {e}")
+        logger.warning(f"[LLM] Groq request failed: {e}")
         return None

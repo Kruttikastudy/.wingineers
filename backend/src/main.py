@@ -62,12 +62,12 @@ async def global_exception_handler(request, exc):
 
 @app.on_event("startup")
 async def startup_validate_llm():
-    """Validate Featherless LLM model availability at startup."""
+    """Validate Groq LLM model availability at startup."""
     try:
         from .services.featherless_llm import validate_model
         await validate_model()
     except Exception as e:
-        logger.error(f"LLM model validation error during startup: {e}")
+        logger.error(f"Groq LLM model validation error during startup: {e}")
 
 
 @app.on_event("startup")
