@@ -264,8 +264,10 @@ async def full_analysis(url_string: str, phish_tank_api_key: Optional[str] = Non
     """
     result = analyze_url(url_string)
 
-    # Run PhishTank check if API key is available
-    phish_tank_result = await check_phishtank(url_string, phish_tank_api_key)
+    # Run PhishTank check only if API key is available
+    phish_tank_result = None
+    if phish_tank_api_key:
+        phish_tank_result = await check_phishtank(url_string, phish_tank_api_key)
 
     if phish_tank_result:
         result["phishTank"] = phish_tank_result

@@ -239,9 +239,9 @@ async function downloadAndAnalyzeMedia(mediaUrl, mediaType) {
       mediaUrl,
     );
 
-    // Enforce HTTPS for media downloads to prevent MITM
+    // Warn (but allow) HTTP media downloads
     if (!mediaUrl.startsWith('https://')) {
-      throw new Error('Only HTTPS media URLs are supported for security');
+      console.warn('[PhishGuard] Media URL uses HTTP (not HTTPS) — analysis will proceed but connection is not encrypted:', mediaUrl);
     }
 
     // Download file
