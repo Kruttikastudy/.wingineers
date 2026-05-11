@@ -16,8 +16,8 @@
   if (window.__promptGuardInjected) return;
   window.__promptGuardInjected = true;
 
-  const DEBOUNCE_MS = 800;
-  const MIN_LENGTH = 15; // Don't analyze very short text
+  const DEBOUNCE_MS = 600;
+  const MIN_LENGTH = 10; // Don't analyze very short text
   const RISK_THRESHOLD = 25; // Score at which we flag
 
   // Track active debounce timers per element
@@ -479,7 +479,22 @@
 
   // ── Find and attach to all input elements ──
   function scanAndAttach(root) {
-    const selectors = 'textarea, input[type="text"], input:not([type]), [contenteditable="true"], [contenteditable=""]';
+    // Broad selector covering: standard inputs, contenteditable divs (ChatGPT, Claude),
+    // role=textbox (Gemini, Bing, Notion), aria-multiline (Google Docs), rich-textarea
+    const selectors = [
+      'textarea',
+      'input[type="text"]',
+      'input:not([type])',
+      '[contenteditable="true"]',
+      '[contenteditable=""]',
+      '[role="textbox"]',
+      '[aria-multiline="true"]',
+      'rich-textarea',
+      '.ql-editor',           // Quill editor
+      '.ProseMirror',         // ProseMirror (used by many AI apps)
+      '[data-testid="prompt-textarea"]',  // OpenAI
+    ].join(', ');
+
     const elements = root.querySelectorAll ? root.querySelectorAll(selectors) : [];
     elements.forEach(attachMonitor);
 

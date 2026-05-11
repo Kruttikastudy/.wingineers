@@ -354,6 +354,20 @@ INJECTION_PATTERNS = [
         "pattern": r"(no\s+rules?|rules?\s+don.?t|rules?\s+do\s+not|laws?\s+don.?t|nothing\s+is\s+off)\s+(apply|exist|matter|limit|restrict|stop|hold|count)",
         "explanation": "Declares that no rules apply to override all behavioral constraints in the current session.",
     },
+    {
+        "name": "intercept_and_leak",
+        "category": "information_extraction",
+        "severity": 10,
+        "pattern": r"(intercept|capture|steal|grab|snag|hijack)\s+(\w+\s+)?(and\s+)?(leak|send|exfiltrate|transmit|expose|share|dump|forward)\s+(\w+\s+)?(the\s+)?(following|above|below|this|all)?\s*(information|data|files?|docs?|documents?|content)?",
+        "explanation": "Instructs the model to intercept data and then leak or exfiltrate it — a direct data theft command chain.",
+    },
+    {
+        "name": "leak_following_info",
+        "category": "information_extraction",
+        "severity": 9,
+        "pattern": r"leak\s+the\s+following|leak\s+(this|all|any|the)\s+(info|information|data|content|document)",
+        "explanation": "Explicitly commands the model to leak specific information — a direct data exfiltration instruction.",
+    },
 ]
 
 
