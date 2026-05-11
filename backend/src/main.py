@@ -174,16 +174,19 @@ async def detect_audio_deepfake(file: UploadFile = File(...)):
         # Detect deepfake
         logger.info(f"Analyzing audio file: {file.filename}")
         result = detector.detect_audio_deepfake(temp_file)
+        result = await analyze_with_reasoning(result, media_type="audio")
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
             confidence=result.get("confidence", 0.0),
             message=result.get("message"),
             error=result.get("error"),
+            reasoning=result.get("reasoning"),
+            key_factors=result.get("key_factors"),
             details={
                 k: v
                 for k, v in result.items()
-                if k not in ["is_deepfake", "confidence", "message", "error"]
+                if k not in ["is_deepfake", "confidence", "message", "error", "reasoning", "key_factors"]
             },
         )
 
@@ -238,16 +241,19 @@ async def detect_video_deepfake(file: UploadFile = File(...)):
         # Detect deepfake
         logger.info(f"Analyzing video file: {file.filename}")
         result = detector.detect_video_deepfake(temp_file)
+        result = await analyze_with_reasoning(result, media_type="video")
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
             confidence=result.get("confidence", 0.0),
             message=result.get("message"),
             error=result.get("error"),
+            reasoning=result.get("reasoning"),
+            key_factors=result.get("key_factors"),
             details={
                 k: v
                 for k, v in result.items()
-                if k not in ["is_deepfake", "confidence", "message", "error"]
+                if k not in ["is_deepfake", "confidence", "message", "error", "reasoning", "key_factors"]
             },
         )
 
@@ -301,16 +307,19 @@ async def detect_image_deepfake(file: UploadFile = File(...)):
         # Detect deepfake
         logger.info(f"Analyzing image file: {file.filename}")
         result = detector.detect_image_deepfake(temp_file)
+        result = await analyze_with_reasoning(result, media_type="image")
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
             confidence=result.get("confidence", 0.0),
             message=result.get("message"),
             error=result.get("error"),
+            reasoning=result.get("reasoning"),
+            key_factors=result.get("key_factors"),
             details={
                 k: v
                 for k, v in result.items()
-                if k not in ["is_deepfake", "confidence", "message", "error"]
+                if k not in ["is_deepfake", "confidence", "message", "error", "reasoning", "key_factors"]
             },
         )
 
@@ -354,10 +363,13 @@ async def detect_deepfake(file: UploadFile = File(...)):
 
         if file_ext in [".mp3", ".wav", ".ogg", ".m4a", ".flac"]:
             result = detector.detect_audio_deepfake(temp_file)
+            media_type = "audio"
         elif file_ext in [".mp4", ".avi", ".mkv", ".mov", ".webm"]:
             result = detector.detect_video_deepfake(temp_file)
+            media_type = "video"
         elif file_ext in [".jpg", ".jpeg", ".png", ".webp", ".avif"]:
             result = detector.detect_image_deepfake(temp_file)
+            media_type = "image"
         else:
             return DeepfakeResponse(
                 is_deepfake=None,
@@ -365,16 +377,19 @@ async def detect_deepfake(file: UploadFile = File(...)):
                 error=f"Unsupported file format: {file_ext}",
             )
 
+        result = await analyze_with_reasoning(result, media_type=media_type)
 
         return DeepfakeResponse(
             is_deepfake=result.get("is_deepfake"),
             confidence=result.get("confidence", 0.0),
             message=result.get("message"),
             error=result.get("error"),
+            reasoning=result.get("reasoning"),
+            key_factors=result.get("key_factors"),
             details={
                 k: v
                 for k, v in result.items()
-                if k not in ["is_deepfake", "confidence", "message", "error"]
+                if k not in ["is_deepfake", "confidence", "message", "error", "reasoning", "key_factors"]
             },
         )
 
